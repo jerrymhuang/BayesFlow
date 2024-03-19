@@ -20,8 +20,8 @@
 
 
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, LayerNormalization, MultiHeadAttention
-from tensorflow.keras.models import Sequential
+from keras.layers import Dense, LayerNormalization, MultiHeadAttention
+from keras.models import Sequential
 
 
 class MultiHeadAttentionBlock(tf.keras.Model):
