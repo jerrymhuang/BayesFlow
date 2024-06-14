@@ -1,3 +1,4 @@
+
 import keras
 
 from keras.saving import (
@@ -38,7 +39,8 @@ class HierarchicalNetwork(keras.Model):
         self.networks = networks_list
 
     def call(self, x: Tensor, return_all=False, **kwargs):
-        """Performs the forward pass through the hierarchical network,
+        """
+        Performs the forward pass through the hierarchical network,
         transforming the nested input into learned summary statistics.
 
         Parameters
