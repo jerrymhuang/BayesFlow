@@ -12,7 +12,7 @@ from .invariant_module import InvariantModule
 from .equivariant_module import EquivariantModule
 
 
-@register_keras_serializable(package="bayesflow.networks.deep_set")
+@register_keras_serializable(package="bayesflow.networks")
 class DeepSet(keras.Model):
     def __init__(
         self,
@@ -97,8 +97,7 @@ class DeepSet(keras.Model):
         return set_representation
 
     def build(self, input_shape):
-        super().build(input_shape)
-        self(keras.KerasTensor(input_shape))
+        self.call(keras.ops.zeros(input_shape))
 
     def get_config(self):
         config = super().get_config()

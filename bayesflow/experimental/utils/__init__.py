@@ -1,5 +1,10 @@
 
-from .dictutils import nested_getitem, keras_kwargs
+from .dictutils import (
+    batched_call,
+    filter_concatenate,
+    keras_kwargs,
+)
+
 from .dispatch import (
     find_distribution,
     find_network,

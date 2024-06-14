@@ -8,7 +8,7 @@ from bayesflow.experimental.utils import keras_kwargs
 from .invariant_module import InvariantModule
 
 
-@register_keras_serializable(package="bayesflow.networks.deep_set")
+@register_keras_serializable(package="bayesflow.networks")
 class EquivariantModule(keras.Layer):
     """Implements an equivariant module performing an equivariant transform.
 
@@ -69,7 +69,7 @@ class EquivariantModule(keras.Layer):
                 layer = layers.SpectralNormalization(layer)
             self.equivariant_fc.add(layer)
 
-        self.ln = layers.LayerNormalization() if layer_norm else None
+        self.layer_norm = layers.LayerNormalization() if layer_norm else None
 
     def call(self, input_set: Tensor, **kwargs) -> Tensor:
         """Performs the forward pass of a learnable equivariant transform.
@@ -101,11 +101,10 @@ class EquivariantModule(keras.Layer):
 
         # Pass through final equivariant transform + residual
         output_set = input_set + self.equivariant_fc(output_set, training=training)
-        if self.ln is not None:
-            output_set = self.ln(output_set, training=training)
+        if self.layer_norm is not None:
+            output_set = self.layer_norm(output_set, training=training)
 
         return output_set
 
     def build(self, input_shape):
-        super().build(input_shape)
-        self(keras.KerasTensor(input_shape))
+        self.call(keras.ops.zeros(input_shape))
