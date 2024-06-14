@@ -7,7 +7,7 @@ from keras.saving import (
 from bayesflow.experimental.types import Tensor
 
 
-@register_keras_serializable(package="bayesflow.networks.hierarchical_network")
+@register_keras_serializable(package="bayesflow.networks")
 class HierarchicalNetwork(keras.Model):
     """Implements a hierarchical summary network according to [1].
 
