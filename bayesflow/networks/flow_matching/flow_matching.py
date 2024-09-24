@@ -1,15 +1,16 @@
+from collections.abc import Sequence
 import keras
-from keras.saving import (
-    register_keras_serializable,
-)
+from keras.saving import register_keras_serializable as serializable
 
-from bayesflow.types import Tensor
-from bayesflow.utils import expand_right_as, find_network, jacobian_trace, keras_kwargs, optimal_transport, tile_axis
-
+from bayesflow.types import Shape, Tensor
+from bayesflow.utils import expand_right_as, keras_kwargs, optimal_transport
 from ..inference_network import InferenceNetwork
+from .integrators import EulerIntegrator
+from .integrators import RK2Integrator
+from .integrators import RK4Integrator
 
 
-@register_keras_serializable(package="bayesflow.networks")
+@serializable(package="bayesflow.networks")
 class FlowMatching(InferenceNetwork):
     """Implements Optimal Transport Flow Matching, originally introduced as Rectified Flow,
     with ideas incorporated from [1-3].
@@ -19,32 +20,41 @@ class FlowMatching(InferenceNetwork):
     [3] Optimal Transport Flow Matching: arXiv:2302.00482
     """
 
-    def __init__(self, subnet: str = "mlp", base_distribution: str = "normal", **kwargs):
+    def __init__(
+        self,
+        subnet: str = "mlp",
+        base_distribution: str = "normal",
+        integrator: str = "euler",
+        use_optimal_transport: bool = False,
+        optimal_transport_kwargs: dict[str, any] = None,
+        **kwargs,
+    ):
         super().__init__(base_distribution=base_distribution, **keras_kwargs(kwargs))
-        self.subnet = find_network(subnet, **kwargs.get("subnet_kwargs", {}))
-        self.output_projector = keras.layers.Dense(units=None, bias_initializer="zeros", kernel_initializer="zeros")
+
+        self.use_optimal_transport = use_optimal_transport
+        self.optimal_transport_kwargs = optimal_transport_kwargs or {
+            "method": "sinkhorn",
+            "cost": "euclidean",
+            "regularization": 0.1,
+            "max_steps": 1000,
+            "tolerance": 1e-4,
+        }
 
         self.seed_generator = keras.random.SeedGenerator()
 
-    def build(self, xz_shape, conditions_shape=None):
+        match integrator:
+            case "euler":
+                self.integrator = EulerIntegrator(subnet, **kwargs)
+            case "rk2":
+                self.integrator = RK2Integrator(subnet, **kwargs)
+            case "rk4":
+                self.integrator = RK4Integrator(subnet, **kwargs)
+            case _:
+                raise NotImplementedError(f"No support for {integrator} integration")
+
+    def build(self, xz_shape: Shape, conditions_shape: Shape = None) -> None:
         super().build(xz_shape)
-
-        self.output_projector.units = xz_shape[-1]
-
-        input_shape = list(xz_shape)
-
-        # time vector
-        input_shape[-1] += 1
-
-        if conditions_shape is not None:
-            input_shape[-1] += conditions_shape[-1]
-
-        input_shape = tuple(input_shape)
-
-        self.subnet.build(input_shape)
-
-        input_shape = self.subnet.compute_output_shape(input_shape)
-        self.output_projector.build(input_shape)
+        self.integrator.build(xz_shape, conditions_shape)
 
     def call(
         self,
@@ -57,115 +67,59 @@ class FlowMatching(InferenceNetwork):
             return self._inverse(xz, conditions=conditions, **kwargs)
         return self._forward(xz, conditions=conditions, **kwargs)
 
-    def velocity(self, x: Tensor, t: int | float | Tensor, conditions: Tensor = None, **kwargs) -> Tensor:
-        if not keras.ops.is_tensor(t):
-            t = keras.ops.convert_to_tensor(t, dtype=x.dtype)
-
-        if keras.ops.ndim(t) == 0:
-            t = keras.ops.full((keras.ops.shape(x)[0],), t, dtype=keras.ops.dtype(x))
-
-        t = expand_right_as(t, x)
-        if keras.ops.ndim(x) == 3:
-            t = tile_axis(t, axis=1, n=keras.ops.shape(x)[1])
-
-        if conditions is None:
-            xtc = keras.ops.concatenate([x, t], axis=-1)
-        else:
-            xtc = keras.ops.concatenate([x, t, conditions], axis=-1)
-
-        return self.output_projector(self.subnet(xtc, **kwargs))
-
     def _forward(
         self, x: Tensor, conditions: Tensor = None, density: bool = False, **kwargs
     ) -> Tensor | tuple[Tensor, Tensor]:
         steps = kwargs.get("steps", 100)
-        z = keras.ops.copy(x)
-        t = 1.0
-        dt = -1.0 / steps
 
         if density:
-            trace = keras.ops.zeros(keras.ops.shape(x)[0], dtype=x.dtype)
-
-            def f(arg):
-                return self.velocity(arg, t, conditions, **kwargs)
-
-            for _ in range(steps):
-                v, tr = jacobian_trace(f, z, kwargs.get("trace_steps", 5))
-                z += dt * v
-                trace += dt * tr
-                t += dt
-
+            z, trace = self.integrator(x, conditions=conditions, steps=steps, density=True)
             log_prob = self.base_distribution.log_prob(z)
-
             log_density = log_prob + trace
-
             return z, log_density
-        else:
-            for _ in range(steps):
-                v = self.velocity(z, t, conditions, **kwargs)
-                z += dt * v
-                t += dt
 
-            return z
+        z = self.integrator(x, conditions=conditions, steps=steps, density=False)
+        return z
 
     def _inverse(
         self, z: Tensor, conditions: Tensor = None, density: bool = False, **kwargs
     ) -> Tensor | tuple[Tensor, Tensor]:
         steps = kwargs.get("steps", 100)
-        x = keras.ops.copy(z)
-        t = 0.0
-        dt = 1.0 / steps
 
         if density:
-            trace = keras.ops.zeros(keras.ops.shape(x)[0], dtype=x.dtype)
-
-            def f(arg):
-                return self.velocity(arg, t, conditions)
-
-            for _ in range(steps):
-                v, tr = jacobian_trace(f, x, kwargs.get("trace_steps", 5))
-                x += dt * v
-                trace += dt * tr
-                t += dt
-
+            x, trace = self.integrator(z, conditions=conditions, steps=steps, density=True, inverse=True)
             log_prob = self.base_distribution.log_prob(z)
-
             log_density = log_prob - trace
-
             return x, log_density
+
+        x = self.integrator(z, conditions=conditions, steps=steps, density=False, inverse=True)
+        return x
+
+    def compute_metrics(
+        self, x: Tensor | Sequence[Tensor, ...], conditions: Tensor = None, stage: str = "training"
+    ) -> dict[str, Tensor]:
+        if isinstance(x, Sequence):
+            # already pre-configured
+            x0, x1, t, x, target_velocity = x
         else:
-            for _ in range(steps):
-                v = self.velocity(x, t, conditions)
-                x += dt * v
-                t += dt
+            # not pre-configured, resample
+            x1 = x
+            x0 = keras.random.normal(keras.ops.shape(x1), dtype=keras.ops.dtype(x1), seed=self.seed_generator)
 
-            return x
+            if self.use_optimal_transport:
+                x1, x0, conditions = optimal_transport(
+                    x1, x0, conditions, seed=self.seed_generator, **self.optimal_transport_kwargs
+                )
 
-    def compute_metrics(self, data: dict[str, Tensor], stage: str = "training") -> dict[str, Tensor]:
-        base_metrics = super().compute_metrics(data, stage=stage)
+            t = keras.random.uniform((keras.ops.shape(x0)[0],), seed=self.seed_generator)
+            t = expand_right_as(t, x0)
 
-        x1 = data["inference_variables"]
-        c = data.get("inference_conditions")
+            x = t * x1 + (1 - t) * x0
+            target_velocity = x1 - x0
 
-        if not self.built:
-            # TODO: the base distribution is not yet built, but we need to sample from it (see below)
-            #  ideally, we want to build automatically before this method is called
-            xz_shape = keras.ops.shape(x1)
-            conditions_shape = None if c is None else keras.ops.shape(c)
-            self.build(xz_shape, conditions_shape)
+        base_metrics = super().compute_metrics(x1, conditions, stage)
 
-        x0 = self.base_distribution.sample((keras.ops.shape(x1)[0],))
-
-        # TODO: should move this to worker-process somehow
-        x0, x1 = optimal_transport(x0, x1, max_steps=int(1e4), regularization=0.01, seed=self.seed_generator)
-
-        t = keras.random.uniform((keras.ops.shape(x0)[0],), seed=self.seed_generator)
-        t = expand_right_as(t, x0)
-
-        x = t * x1 + (1 - t) * x0
-
-        predicted_velocity = self.velocity(x, t, c)
-        target_velocity = x1 - x0
+        predicted_velocity = self.integrator.velocity(x, t, conditions)
 
         loss = keras.losses.mean_squared_error(target_velocity, predicted_velocity)
         loss = keras.ops.mean(loss)
