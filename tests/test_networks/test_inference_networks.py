@@ -109,22 +109,22 @@ def test_density_numerically(generative_inference_network, random_samples, rando
     assert_allclose(log_density, numerical_log_density, rtol=1e-3, atol=1e-3)
 
 
-def test_serialize_deserialize(inference_network_subnet, subnet, random_samples, random_conditions):
+def test_serialize_deserialize(inference_network, random_samples, random_conditions):
     # to save, the model must be built
-    inference_network_subnet(random_samples, conditions=random_conditions)
+    inference_network(random_samples, conditions=random_conditions)
 
-    serialized = serialize(inference_network_subnet)
+    serialized = serialize(inference_network)
     deserialized = deserialize(serialized)
     reserialized = serialize(deserialized)
 
     assert serialized == reserialized
 
 
-def test_save_and_load(tmp_path, inference_network_subnet, subnet, random_samples, random_conditions):
+def test_save_and_load(tmp_path, inference_network, random_samples, random_conditions):
     # to save, the model must be built
-    inference_network_subnet(random_samples, conditions=random_conditions)
+    inference_network(random_samples, conditions=random_conditions)
 
-    keras.saving.save_model(inference_network_subnet, tmp_path / "model.keras")
+    keras.saving.save_model(inference_network, tmp_path / "model.keras")
     loaded = keras.saving.load_model(tmp_path / "model.keras")
 
-    assert_layers_equal(inference_network_subnet, loaded)
+    assert_layers_equal(inference_network, loaded)

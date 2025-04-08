@@ -1,37 +1,21 @@
 import pytest
 
+from bayesflow.networks import MLP
 
-# For the serialization tests, we want to test passing str and type.
-# For all other tests, this is not necessary and would double test time.
-# Therefore, below we specify two variants of each network, one without and
-# one with a subnet parameter. The latter will only be used for the relevant
-# tests. If there is a better way to set the params to a single value ("mlp")
-# for a given test, maybe this can be simplified, but I did not see one.
-@pytest.fixture(params=["str", "type"], scope="function")
+
+@pytest.fixture(scope="session", params=["mlp", MLP([64, 64])])
 def subnet(request):
-    if request.param == "str":
-        return "mlp"
-
-    from bayesflow.networks import MLP
-
-    return MLP
+    return request.param
 
 
 @pytest.fixture()
-def flow_matching():
+def flow_matching(subnet):
     from bayesflow.networks import FlowMatching
 
     return FlowMatching(
-        subnet_kwargs={"widths": [64, 64]},
+        subnet=subnet,
         integrate_kwargs={"method": "rk45", "steps": 100},
     )
-
-
-@pytest.fixture()
-def flow_matching_subnet(subnet):
-    from bayesflow.networks import FlowMatching
-
-    return FlowMatching(subnet=subnet)
 
 
 @pytest.fixture()
@@ -42,24 +26,10 @@ def coupling_flow():
 
 
 @pytest.fixture()
-def coupling_flow_subnet(subnet):
-    from bayesflow.networks import CouplingFlow
-
-    return CouplingFlow(depth=2, subnet=subnet)
-
-
-@pytest.fixture()
-def free_form_flow():
+def free_form_flow(subnet):
     from bayesflow.experimental import FreeFormFlow
 
-    return FreeFormFlow()
-
-
-@pytest.fixture()
-def free_form_flow_subnet(subnet):
-    from bayesflow.experimental import FreeFormFlow
-
-    return FreeFormFlow(encoder_subnet=subnet, decoder_subnet=subnet)
+    return FreeFormFlow(encoder=subnet, decoder=subnet)
 
 
 @pytest.fixture()
