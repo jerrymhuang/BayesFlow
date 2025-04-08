@@ -1,8 +1,9 @@
 import keras
 
+from bayesflow.distributions import find_distribution
 from bayesflow.metrics.functional import maximum_mean_discrepancy
 from bayesflow.types import Tensor
-from bayesflow.utils import find_distribution, keras_kwargs
+from bayesflow.utils import keras_kwargs
 from bayesflow.utils.decorators import sanitize_input_shape
 
 

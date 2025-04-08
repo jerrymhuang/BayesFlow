@@ -1,7 +1,8 @@
 import keras
 
+from bayesflow.distributions import find_distribution
 from bayesflow.types import Shape, Tensor
-from bayesflow.utils import find_distribution, keras_kwargs
+from bayesflow.utils import keras_kwargs
 from bayesflow.utils.decorators import allow_batch_size
 
 
