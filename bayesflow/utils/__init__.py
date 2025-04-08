@@ -18,7 +18,7 @@ from .dict_utils import (
     split_arrays,
     squeeze_inner_estimates_dict,
 )
-from .dispatch import find_distribution, find_network, find_permutation, find_pooling, find_recurrent_net
+from .dispatch import find_network, find_permutation, find_pooling, find_recurrent_net
 from .ecdf import simultaneous_ecdf_bands, ranks
 from .functional import batched_call
 from .git import (

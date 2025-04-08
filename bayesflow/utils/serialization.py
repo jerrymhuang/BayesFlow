@@ -1,4 +1,10 @@
+from collections.abc import Collection
+from copy import copy
+
+import inspect
 import keras
+
+from .decorators import allow_args
 
 
 PREFIX = "_bayesflow_"
@@ -76,3 +82,33 @@ def deserialize_value_or_type(config, name):
         updated_config[name] = keras.saving.deserialize_keras_object(config[f"{PREFIX}{name}_val"])
         del updated_config[f"{PREFIX}{name}_val"]
     return updated_config
+
+
+def deserialize(obj, custom_objects=None, module_objects=None):
+    if inspect.isclass(obj):
+        return keras.saving.get_registered_object(obj, custom_objects=custom_objects, module_objects=module_objects)
+    return keras.saving.deserialize_keras_object(obj, custom_objects=custom_objects, module_objects=module_objects)
+
+
+@allow_args
+def serializable(cls, package=None, name=None):
+    if package is None:
+        # get the calling module's name, e.g. "bayesflow.networks.inference_network"
+        stack = inspect.stack()
+        module = inspect.getmodule(stack[1][0])
+        package = copy(module.__name__)
+
+    if name is None:
+        name = copy(cls.__name__)
+
+    # register subclasses as keras serializable
+    return keras.saving.register_keras_serializable(package=package, name=name)(cls)
+
+
+def serialize(obj):
+    if not isinstance(obj, str) and isinstance(obj, Collection):
+        return keras.tree.map_structure(serialize, obj)
+
+    if inspect.isclass(obj):
+        return keras.saving.get_registered_name(obj)
+    return keras.saving.serialize_keras_object(obj)
