@@ -1,8 +1,10 @@
 from collections.abc import Sequence
 
 import keras
-from keras.saving import register_keras_serializable as serializable
 
+import warnings
+
+from bayesflow.distributions import Distribution
 from bayesflow.types import Shape, Tensor
 from bayesflow.utils import (
     expand_right_as,
@@ -11,10 +13,9 @@ from bayesflow.utils import (
     jacobian_trace,
     keras_kwargs,
     optimal_transport,
-    serialize_value_or_type,
-    deserialize_value_or_type,
     weighted_sum,
 )
+from bayesflow.utils.serialization import serialize, deserialize, serializable
 from ..inference_network import InferenceNetwork
 
 
@@ -52,10 +53,10 @@ class FlowMatching(InferenceNetwork):
 
     def __init__(
         self,
-        subnet: str | type = "mlp",
-        base_distribution: str = "normal",
+        subnet: str | keras.Layer = "mlp",
+        base_distribution: str | Distribution = "normal",
         use_optimal_transport: bool = True,
-        loss_fn: str = "mse",
+        loss_fn: str | keras.Loss = "mse",
         integrate_kwargs: dict[str, any] = None,
         optimal_transport_kwargs: dict[str, any] = None,
         subnet_kwargs: dict[str, any] = None,
@@ -105,23 +106,18 @@ class FlowMatching(InferenceNetwork):
 
         self.seed_generator = keras.random.SeedGenerator()
 
+        if subnet_kwargs:
+            warnings.warn(
+                "Using `subnet_kwargs` is deprecated. Instead, instantiate the network yourself and pass it directly.",
+                DeprecationWarning,
+            )
+
         subnet_kwargs = subnet_kwargs or {}
         if subnet == "mlp":
             subnet_kwargs = FlowMatching.MLP_DEFAULT_CONFIG | subnet_kwargs
 
         self.subnet = find_network(subnet, **subnet_kwargs)
         self.output_projector = keras.layers.Dense(units=None, bias_initializer="zeros")
-
-        # serialization: store all parameters necessary to call __init__
-        self.config = {
-            "base_distribution": base_distribution,
-            "use_optimal_transport": self.use_optimal_transport,
-            "optimal_transport_kwargs": self.optimal_transport_kwargs,
-            "integrate_kwargs": self.integrate_kwargs,
-            "subnet_kwargs": subnet_kwargs,
-            **kwargs,
-        }
-        self.config = serialize_value_or_type(self.config, "subnet", subnet)
 
     def build(self, xz_shape: Shape, conditions_shape: Shape = None) -> None:
         super().build(xz_shape, conditions_shape=conditions_shape)
@@ -140,14 +136,24 @@ class FlowMatching(InferenceNetwork):
         out_shape = self.subnet.compute_output_shape(input_shape)
         self.output_projector.build(out_shape)
 
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config))
+
     def get_config(self):
         base_config = super().get_config()
-        return base_config | self.config
 
-    @classmethod
-    def from_config(cls, config):
-        config = deserialize_value_or_type(config, "subnet")
-        return cls(**config)
+        config = {
+            "subnet": self.subnet,
+            "base_distribution": self.base_distribution,
+            "use_optimal_transport": self.use_optimal_transport,
+            "loss_fn": self.loss_fn,
+            "integrate_kwargs": self.integrate_kwargs,
+            "optimal_transport_kwargs": self.optimal_transport_kwargs,
+            # we do not need to store subnet_kwargs
+        }
+
+        return base_config | serialize(config)
 
     def velocity(self, xz: Tensor, time: float | Tensor, conditions: Tensor = None, training: bool = False) -> Tensor:
         time = keras.ops.convert_to_tensor(time, dtype=keras.ops.dtype(xz))
