@@ -2,13 +2,14 @@ from typing import Literal
 
 import keras
 from keras import layers
-from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Tensor
+from bayesflow.utils import keras_kwargs
+from bayesflow.utils.serialization import serializable
 
 
-@serializable(package="bayesflow.networks")
-class ConfigurableHiddenBlock(keras.layers.Layer):
+@serializable
+class ConfigurableHiddenBlock(keras.Layer):
     def __init__(
         self,
         units: int = 256,
@@ -19,7 +20,7 @@ class ConfigurableHiddenBlock(keras.layers.Layer):
         spectral_normalization: bool = False,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(**keras_kwargs(kwargs))
 
         self.activation_fn = keras.activations.get(activation)
         self.residual = residual
@@ -49,6 +50,11 @@ class ConfigurableHiddenBlock(keras.layers.Layer):
         return self.activation_fn(x)
 
     def build(self, input_shape):
+        if self.built:
+            # building when the network is already built can cause issues with serialization
+            # see https://github.com/keras-team/keras/issues/21147
+            return
+
         self.dense.build(input_shape)
 
         if input_shape[-1] != self.units and self.residual:

@@ -2,14 +2,14 @@ from collections.abc import Sequence
 from typing import Literal
 
 import keras
-from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Tensor
 from bayesflow.utils import keras_kwargs
+from bayesflow.utils.serialization import serializable
 from .hidden_block import ConfigurableHiddenBlock
 
 
-@serializable(package="bayesflow.networks")
+@serializable
 class MLP(keras.Layer):
     """
     Implements a simple configurable MLP with optional residual connections and dropout.
@@ -39,9 +39,6 @@ class MLP(keras.Layer):
         If `residual` is enabled, each layer includes a skip connection for improved gradient flow. The model also
         supports dropout for regularization and spectral normalization for stability in learning smooth functions.
 
-        The architecture can be specified either via an explicit sequence of layer widths (`widths`) or by defining a
-        fixed depth and width (`depth` and `width`).
-
         Parameters
         ----------
         widths : Sequence[int], optional
@@ -58,11 +55,6 @@ class MLP(keras.Layer):
             Whether to apply spectral normalization to stabilize training. Default is False.
         **kwargs
             Additional keyword arguments passed to the Keras layer initialization.
-
-        Raises
-        ------
-        ValueError
-            If both `widths` and (`depth`, `width`) are provided
         """
 
         super().__init__(**keras_kwargs(kwargs))
@@ -81,6 +73,11 @@ class MLP(keras.Layer):
             )
 
     def build(self, input_shape):
+        if self.built:
+            # rebuilding when the network is already built can cause issues with serialization
+            # see https://github.com/keras-team/keras/issues/21147
+            return
+
         for layer in self.res_blocks:
             layer.build(input_shape)
             input_shape = layer.compute_output_shape(input_shape)
