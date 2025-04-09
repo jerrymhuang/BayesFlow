@@ -111,7 +111,9 @@ def test_density_numerically(generative_inference_network, random_samples, rando
 
 def test_serialize_deserialize(inference_network, random_samples, random_conditions):
     # to save, the model must be built
-    inference_network(random_samples, conditions=random_conditions)
+    xz_shape = keras.ops.shape(random_samples)
+    conditions_shape = keras.ops.shape(random_conditions) if random_conditions is not None else None
+    inference_network.build(xz_shape, conditions_shape)
 
     serialized = serialize(inference_network)
     deserialized = deserialize(serialized)
