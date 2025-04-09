@@ -66,7 +66,7 @@ def typical_point_inference_network_subnet(subnet):
 @pytest.fixture(
     params=["typical_point_inference_network", "coupling_flow", "flow_matching", "free_form_flow"], scope="function"
 )
-def inference_network(request):
+def inference_network(request, subnet):
     return request.getfixturevalue(request.param)
 
 
