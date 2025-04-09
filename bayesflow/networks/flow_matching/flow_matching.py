@@ -11,7 +11,6 @@ from bayesflow.utils import (
     find_network,
     integrate,
     jacobian_trace,
-    keras_kwargs,
     optimal_transport,
     weighted_sum,
 )
@@ -19,7 +18,7 @@ from bayesflow.utils.serialization import serialize, deserialize, serializable
 from ..inference_network import InferenceNetwork
 
 
-@serializable(package="bayesflow.networks")
+@serializable
 class FlowMatching(InferenceNetwork):
     """Implements Optimal Transport Flow Matching, originally introduced as Rectified Flow, with ideas incorporated
     from [1-3].
@@ -94,8 +93,7 @@ class FlowMatching(InferenceNetwork):
         **kwargs
             Additional keyword arguments passed to the subnet and other components.
         """
-
-        super().__init__(base_distribution=base_distribution, **keras_kwargs(kwargs))
+        super().__init__(base_distribution, **kwargs)
 
         self.use_optimal_transport = use_optimal_transport
 
@@ -108,7 +106,8 @@ class FlowMatching(InferenceNetwork):
 
         if subnet_kwargs:
             warnings.warn(
-                "Using `subnet_kwargs` is deprecated. Instead, instantiate the network yourself and pass it directly.",
+                "Using `subnet_kwargs` is deprecated."
+                "Instead, instantiate the network yourself and pass the arguments directly.",
                 DeprecationWarning,
             )
 
@@ -120,6 +119,11 @@ class FlowMatching(InferenceNetwork):
         self.output_projector = keras.layers.Dense(units=None, bias_initializer="zeros")
 
     def build(self, xz_shape: Shape, conditions_shape: Shape = None) -> None:
+        if self.built:
+            # building when the network is already built can cause issues with serialization
+            # see https://github.com/keras-team/keras/issues/21147
+            return
+
         super().build(xz_shape, conditions_shape=conditions_shape)
 
         self.output_projector.units = xz_shape[-1]
@@ -138,7 +142,7 @@ class FlowMatching(InferenceNetwork):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        return cls(**deserialize(config))
+        return cls(**deserialize(config, custom_objects=custom_objects))
 
     def get_config(self):
         base_config = super().get_config()
