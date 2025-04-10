@@ -74,7 +74,7 @@ class FlowMatching(InferenceNetwork):
 
         Parameters
         ----------
-        subnet : str or type, optional
+        subnet : str or keras.Layer, optional
             The architecture used for the transformation network. Can be "mlp" or a custom
             callable network. Default is "mlp".
         base_distribution : str, optional
@@ -88,7 +88,7 @@ class FlowMatching(InferenceNetwork):
             Additional keyword arguments for the integration process. Default is None.
         optimal_transport_kwargs : dict[str, any], optional
             Additional keyword arguments for configuring optimal transport. Default is None.
-        subnet_kwargs: dict[str, any], optional
+        subnet_kwargs: dict[str, any], optional, deprecated
             Keyword arguments passed to the subnet constructor or used to update the default MLP settings.
         **kwargs
             Additional keyword arguments passed to the subnet and other components.
