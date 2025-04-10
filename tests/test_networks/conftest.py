@@ -84,7 +84,7 @@ def inference_network_subnet(request):
 
 
 @pytest.fixture(params=["coupling_flow", "flow_matching", "free_form_flow"], scope="function")
-def generative_inference_network(request):
+def generative_inference_network(request, subnet):
     return request.getfixturevalue(request.param)
 
 
