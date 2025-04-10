@@ -61,7 +61,7 @@ class DoubleConv(keras.Sequential):
 
         return base_config | serialize(config)
 
-    def build(self, input_shape):
+    def build(self, input_shape=None):
         # set the padding so the output is max-poolable
         *batch_shape, height, width, channels = input_shape
 
