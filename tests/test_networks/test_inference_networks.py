@@ -124,7 +124,9 @@ def test_serialize_deserialize(inference_network, random_samples, random_conditi
 
 def test_save_and_load(tmp_path, inference_network, random_samples, random_conditions):
     # to save, the model must be built
-    inference_network(random_samples, conditions=random_conditions)
+    xz_shape = keras.ops.shape(random_samples)
+    conditions_shape = keras.ops.shape(random_conditions) if random_conditions is not None else None
+    inference_network.build(xz_shape, conditions_shape)
 
     keras.saving.save_model(inference_network, tmp_path / "model.keras")
     loaded = keras.saving.load_model(tmp_path / "model.keras")
