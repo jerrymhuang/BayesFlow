@@ -4,13 +4,13 @@ from typing import Literal
 import keras
 
 from bayesflow.types import Tensor
-from bayesflow.utils import keras_kwargs
+from bayesflow.utils import model_kwargs
 from bayesflow.utils.serialization import serializable
 from .hidden_block import ConfigurableHiddenBlock
 
 
 @serializable
-class MLP(keras.Layer):
+class MLP(keras.Model):
     """
     Implements a simple configurable MLP with optional residual connections and dropout.
 
@@ -57,7 +57,7 @@ class MLP(keras.Layer):
             Additional keyword arguments passed to the Keras layer initialization.
         """
 
-        super().__init__(**keras_kwargs(kwargs))
+        super().__init__(**model_kwargs(kwargs))
 
         self.res_blocks = []
         for width in widths:

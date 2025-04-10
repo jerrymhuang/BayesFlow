@@ -4,12 +4,12 @@ import keras
 from keras import layers
 
 from bayesflow.types import Tensor
-from bayesflow.utils import keras_kwargs
+from bayesflow.utils import model_kwargs
 from bayesflow.utils.serialization import serializable
 
 
 @serializable
-class ConfigurableHiddenBlock(keras.Layer):
+class ConfigurableHiddenBlock(keras.Model):
     def __init__(
         self,
         units: int = 256,
@@ -20,7 +20,7 @@ class ConfigurableHiddenBlock(keras.Layer):
         spectral_normalization: bool = False,
         **kwargs,
     ):
-        super().__init__(**keras_kwargs(kwargs))
+        super().__init__(**model_kwargs(kwargs))
 
         self.activation_fn = keras.activations.get(activation)
         self.residual = residual
