@@ -66,8 +66,6 @@ class DoubleConv(keras.Sequential):
         *batch_shape, height, width, channels = input_shape
 
         padding = [height % 2, width % 2]
-
-        if any(padding):
-            self._layers.insert(0, keras.layers.ZeroPadding2D(padding=padding))
+        self._layers.insert(0, keras.layers.ZeroPadding2D(padding=padding))
 
         super().build(input_shape)
