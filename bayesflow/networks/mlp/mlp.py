@@ -5,7 +5,9 @@ import keras
 
 from bayesflow.types import Tensor
 from bayesflow.utils import model_kwargs
-from bayesflow.utils.serialization import serializable
+from bayesflow.utils.serialization import deserialize, serializable, serialize
+
+
 from .hidden_block import ConfigurableHiddenBlock
 
 
@@ -72,6 +74,13 @@ class MLP(keras.Model):
                 )
             )
 
+        self.widths = widths
+        self.activation = activation
+        self.kernel_initializer = kernel_initializer
+        self.residual = residual
+        self.dropout = dropout
+        self.spectral_normalization = spectral_normalization
+
     def build(self, input_shape):
         if self.built:
             # rebuilding when the network is already built can cause issues with serialization
@@ -92,3 +101,21 @@ class MLP(keras.Model):
             input_shape = layer.compute_output_shape(input_shape)
 
         return input_shape
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config, custom_objects=custom_objects))
+
+    def get_config(self):
+        base_config = super().get_config()
+
+        config = {
+            "widths": self.widths,
+            "activation": self.activation,
+            "kernel_initializer": self.kernel_initializer,
+            "residual": self.residual,
+            "dropout": self.dropout,
+            "spectral_normalization": self.spectral_normalization,
+        }
+
+        return base_config | serialize(config)
