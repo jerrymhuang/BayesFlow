@@ -7,7 +7,7 @@ from keras.saving import (
 import numpy as np
 
 from bayesflow.types import Tensor
-from bayesflow.utils import find_network, keras_kwargs, serialize_value_or_type, deserialize_value_or_type, weighted_sum
+from bayesflow.utils import find_network, layer_kwargs, serialize_value_or_type, deserialize_value_or_type, weighted_sum
 
 
 from ..inference_network import InferenceNetwork
@@ -73,7 +73,7 @@ class ConsistencyModel(InferenceNetwork):
         **kwargs    : dict, optional, default: {}
             Additional keyword arguments
         """
-        super().__init__(base_distribution="normal", **keras_kwargs(kwargs))
+        super().__init__(base_distribution="normal", **layer_kwargs(kwargs))
 
         self.total_steps = float(total_steps)
 

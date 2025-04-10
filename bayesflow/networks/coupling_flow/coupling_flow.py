@@ -4,7 +4,6 @@ from keras.saving import register_keras_serializable as serializable
 from bayesflow.types import Tensor
 from bayesflow.utils import (
     find_permutation,
-    keras_kwargs,
     serialize_value_or_type,
     deserialize_value_or_type,
     weighted_sum,
@@ -88,7 +87,7 @@ class CouplingFlow(InferenceNetwork):
             Additional keyword arguments passed to the ActNorm, permutation, and
             coupling layers for customization.
         """
-        super().__init__(base_distribution=base_distribution, **keras_kwargs(kwargs))
+        super().__init__(base_distribution=base_distribution, **kwargs)
 
         self.depth = depth
 
@@ -115,10 +114,10 @@ class CouplingFlow(InferenceNetwork):
 
     # noinspection PyMethodOverriding
     def build(self, xz_shape, conditions_shape=None):
-        super().build(xz_shape)
-
         for layer in self.invertible_layers:
             layer.build(xz_shape=xz_shape, conditions_shape=conditions_shape)
+
+        self.base_distribution.build(xz_shape)
 
     def get_config(self):
         base_config = super().get_config()

@@ -1,7 +1,7 @@
 import keras
 from keras.saving import register_keras_serializable as serializable
 
-from bayesflow.utils import keras_kwargs, serialize_value_or_type, deserialize_value_or_type
+from bayesflow.utils import serialize_value_or_type, deserialize_value_or_type
 from bayesflow.types import Tensor
 from .single_coupling import SingleCoupling
 from ..invertible_layer import InvertibleLayer
@@ -10,7 +10,7 @@ from ..invertible_layer import InvertibleLayer
 @serializable(package="networks.coupling_flow")
 class DualCoupling(InvertibleLayer):
     def __init__(self, subnet: str | type = "mlp", transform: str = "affine", **kwargs):
-        super().__init__(**keras_kwargs(kwargs))
+        super().__init__(**kwargs)
         self.coupling1 = SingleCoupling(subnet, transform, **kwargs)
         self.coupling2 = SingleCoupling(subnet, transform, **kwargs)
         self.pivot = None

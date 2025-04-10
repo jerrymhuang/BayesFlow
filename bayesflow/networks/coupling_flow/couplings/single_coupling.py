@@ -2,7 +2,7 @@ import keras
 from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Tensor
-from bayesflow.utils import find_network, keras_kwargs, serialize_value_or_type, deserialize_value_or_type
+from bayesflow.utils import find_network, serialize_value_or_type, deserialize_value_or_type
 from ..invertible_layer import InvertibleLayer
 from ..transforms import find_transform
 
@@ -25,7 +25,7 @@ class SingleCoupling(InvertibleLayer):
     }
 
     def __init__(self, subnet: str | type = "mlp", transform: str = "affine", **kwargs):
-        super().__init__(**keras_kwargs(kwargs))
+        super().__init__(**kwargs)
 
         subnet_kwargs = kwargs.get("subnet_kwargs", {})
         if subnet == "mlp":

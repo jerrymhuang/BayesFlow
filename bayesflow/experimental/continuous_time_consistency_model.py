@@ -11,7 +11,6 @@ from bayesflow.utils import (
     jvp,
     concatenate_valid,
     find_network,
-    keras_kwargs,
     expand_right_as,
     expand_right_to,
     serialize_value_or_type,
@@ -40,7 +39,7 @@ class ContinuousTimeConsistencyModel(InferenceNetwork):
 
     def __init__(
         self,
-        subnet: str | type = "mlp",
+        subnet: str | keras.Layer = "mlp",
         sigma_data: float = 1.0,
         **kwargs,
     ):
@@ -53,10 +52,10 @@ class ContinuousTimeConsistencyModel(InferenceNetwork):
             instantiated using subnet_kwargs.
         sigma_data    : float, optional, default: 1.0
             Standard deviation of the target distribution
-        **kwargs      : dict, optional, default: {}
-            Additional keyword arguments, such as
+        **kwargs
+            Additional keyword arguments to the layer.
         """
-        super().__init__(base_distribution="normal", **keras_kwargs(kwargs))
+        super().__init__(base_distribution="normal", **kwargs)
 
         self.subnet = find_network(subnet, **kwargs.get("subnet_kwargs", {}))
         self.subnet_projector = keras.layers.Dense(units=None, bias_initializer="zeros", kernel_initializer="zeros")

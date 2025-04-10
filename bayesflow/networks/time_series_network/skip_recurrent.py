@@ -2,7 +2,7 @@ import keras
 from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Tensor
-from bayesflow.utils import keras_kwargs, find_recurrent_net
+from bayesflow.utils import model_kwargs, find_recurrent_net
 from bayesflow.utils.decorators import sanitize_input_shape
 
 
@@ -30,7 +30,7 @@ class SkipRecurrentNet(keras.Model):
         dropout: float = 0.05,
         **kwargs,
     ):
-        super().__init__(**keras_kwargs(kwargs))
+        super().__init__(**model_kwargs(kwargs))
 
         self.skip_conv = keras.layers.Conv1D(
             filters=input_channels * skip_steps,
