@@ -125,7 +125,13 @@ class FreeFormFlow(InferenceNetwork):
 
     # noinspection PyMethodOverriding
     def build(self, xz_shape, conditions_shape=None):
-        super().build(xz_shape)
+        if self.built:
+            # building when the network is already built can cause issues with serialization
+            # see https://github.com/keras-team/keras/issues/21147
+            return
+
+        self.base_distribution.build(xz_shape)
+
         self.encoder_projector.units = xz_shape[-1]
         self.decoder_projector.units = xz_shape[-1]
 

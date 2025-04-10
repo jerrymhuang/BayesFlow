@@ -124,7 +124,7 @@ class FlowMatching(InferenceNetwork):
             # see https://github.com/keras-team/keras/issues/21147
             return
 
-        super().build(xz_shape, conditions_shape=conditions_shape)
+        self.base_distribution.build(xz_shape)
 
         self.output_projector.units = xz_shape[-1]
         input_shape = list(xz_shape)

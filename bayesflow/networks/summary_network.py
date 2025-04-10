@@ -14,9 +14,14 @@ class SummaryNetwork(keras.Model):
 
     @sanitize_input_shape
     def build(self, input_shape):
+        x = keras.ops.zeros(input_shape)
+        z = self.call(x)
+
         if self.base_distribution is not None:
-            output_shape = keras.ops.shape(self.call(keras.ops.zeros(input_shape)))
-            self.base_distribution.build(output_shape)
+            self.base_distribution.build(keras.ops.shape(z))
+
+    def compute_output_shape(self, input_shape):
+        return keras.ops.shape(self.call(keras.ops.zeros(input_shape)))
 
     def call(self, x: Tensor, **kwargs) -> Tensor:
         """

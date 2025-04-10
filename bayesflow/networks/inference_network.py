@@ -12,7 +12,15 @@ class InferenceNetwork(keras.Model):
         self.base_distribution = find_distribution(base_distribution)
 
     def build(self, xz_shape: Shape, conditions_shape: Shape = None) -> None:
+        if self.built:
+            # building when the network is already built can cause issues with serialization
+            # see https://github.com/keras-team/keras/issues/21147
+            return
+
         self.base_distribution.build(xz_shape)
+        x = keras.ops.zeros(xz_shape)
+        conditions = keras.ops.zeros(conditions_shape) if conditions_shape is not None else None
+        self.call(x, conditions, training=True)
 
     def call(
         self,
