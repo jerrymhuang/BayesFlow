@@ -29,7 +29,7 @@ def coupling_flow():
 def free_form_flow(subnet):
     from bayesflow.experimental import FreeFormFlow
 
-    return FreeFormFlow(encoder=subnet, decoder=subnet)
+    return FreeFormFlow(encoder_subnet=subnet, decoder_subnet=subnet)
 
 
 @pytest.fixture()
