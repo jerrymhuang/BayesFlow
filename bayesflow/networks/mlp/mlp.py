@@ -26,7 +26,8 @@ class MLP(keras.Sequential):
         kernel_initializer: str | keras.Initializer = "he_normal",
         residual: bool = True,
         dropout: Literal[0, None] | float = 0.05,
-        norm: Literal["batch", "layer", "spectral"] | keras.Layer = None,
+        norm: Literal["batch", "layer"] | keras.Layer = None,
+        spectral_normalization: bool = False,
         **kwargs,
     ):
         """
@@ -64,11 +65,14 @@ class MLP(keras.Sequential):
         self.residual = residual
         self.dropout = dropout
         self.norm = norm
+        self.spectral_normalization = spectral_normalization
 
         layers = []
 
         for width in widths:
-            layer = self._make_layer(width, activation, kernel_initializer, residual, dropout, norm)
+            layer = self._make_layer(
+                width, activation, kernel_initializer, residual, dropout, norm, spectral_normalization
+            )
             layers.append(layer)
 
         super().__init__(layers, **sequential_kwargs(kwargs))
@@ -78,9 +82,6 @@ class MLP(keras.Sequential):
             # building when the network is already built can cause issues with serialization
             # see https://github.com/keras-team/keras/issues/21147
             return
-
-        self.call(keras.ops.zeros(input_shape))
-        return
 
         for layer in self._layers:
             layer.build(input_shape)
@@ -100,16 +101,17 @@ class MLP(keras.Sequential):
             "residual": self.residual,
             "dropout": self.dropout,
             "norm": self.norm,
+            "spectral_normalization": self.spectral_normalization,
         }
 
         return base_config | serialize(config)
 
     @staticmethod
-    def _make_layer(width, activation, kernel_initializer, residual, dropout, norm):
+    def _make_layer(width, activation, kernel_initializer, residual, dropout, norm, spectral_normalization):
         layers = []
 
         dense = keras.layers.Dense(width, kernel_initializer=kernel_initializer)
-        if norm == "spectral":
+        if spectral_normalization:
             dense = keras.layers.SpectralNormalization(dense)
         layers.append(dense)
 
@@ -122,22 +124,20 @@ class MLP(keras.Sequential):
 
         layers.append(activation)
 
-        if residual:
-            layer = Residual(*layers)
-        else:
-            layer = keras.Sequential(layers)
-
         if norm == "batch":
-            layer.add(keras.layers.BatchNormalization())
+            layers.append(keras.layers.BatchNormalization())
         elif norm == "layer":
-            layer.add(keras.layers.LayerNormalization())
+            layers.append(keras.layers.LayerNormalization())
         elif isinstance(norm, str):
             raise ValueError(f"Unknown normalization strategy: {norm!r}.")
         elif isinstance(norm, keras.Layer):
-            layer.add(norm)
+            layers.append(norm)
         elif norm is None:
             pass
         else:
             raise TypeError(f"Cannot infer norm from {norm!r} of type {type(norm)}.")
 
-        return layer
+        if residual:
+            return Residual(*layers)
+
+        return keras.Sequential(layers)
