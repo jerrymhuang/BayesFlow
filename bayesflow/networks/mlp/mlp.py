@@ -100,6 +100,7 @@ class MLP(keras.Sequential):
 
     def get_config(self):
         base_config = super().get_config()
+        base_config = sequential_kwargs(base_config)
 
         config = {
             "widths": self.widths,
@@ -117,9 +118,9 @@ class MLP(keras.Sequential):
     def _make_layer(width, activation, kernel_initializer, residual, dropout, norm, spectral_normalization):
         layers = []
 
-        dense = keras.layers.Dense(width, kernel_initializer=kernel_initializer, name="linear")
+        dense = keras.layers.Dense(width, kernel_initializer=kernel_initializer, name="dense")
         if spectral_normalization:
-            dense = keras.layers.SpectralNormalization(dense)
+            dense = keras.layers.SpectralNormalization(dense, name="spectral_dense")
         layers.append(dense)
 
         if dropout is not None and dropout > 0:
@@ -127,14 +128,16 @@ class MLP(keras.Sequential):
 
         activation = keras.activations.get(activation)
         if not isinstance(activation, keras.Layer):
-            activation = keras.layers.Activation(activation, name=activation.__name__)
+            activation = keras.layers.Activation(activation)
+
+        activation.name = "activation"
 
         layers.append(activation)
 
         if norm == "batch":
-            layers.append(keras.layers.BatchNormalization())
+            layers.append(keras.layers.BatchNormalization(name="norm"))
         elif norm == "layer":
-            layers.append(keras.layers.LayerNormalization())
+            layers.append(keras.layers.LayerNormalization(name="norm"))
         elif isinstance(norm, str):
             raise ValueError(f"Unknown normalization strategy: {norm!r}.")
         elif isinstance(norm, keras.Layer):

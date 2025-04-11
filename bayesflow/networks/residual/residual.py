@@ -20,6 +20,7 @@ class Residual(keras.Sequential):
 
     def get_config(self):
         base_config = super().get_config()
+        base_config = sequential_kwargs(base_config)
 
         config = {
             "layers": self.layers,
