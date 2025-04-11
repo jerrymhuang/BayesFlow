@@ -4,7 +4,7 @@ import keras
 from bayesflow.utils import model_kwargs
 from bayesflow.utils.serialization import deserialize, serializable, serialize
 
-from bayesflow.experimental.resnet.residual import Residual
+from bayesflow.networks.residual import Residual
 from .double_conv import DoubleConv
 
 
