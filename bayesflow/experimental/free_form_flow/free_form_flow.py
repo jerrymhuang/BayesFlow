@@ -132,13 +132,13 @@ class FreeFormFlow(InferenceNetwork):
         input_shape = tuple(input_shape)
 
         self.encoder_subnet.build(input_shape)
-        input_shape = self.encoder_subnet.compute_output_shape(input_shape)
-        self.encoder_projector.build(input_shape)
-        input_shape = self.encoder_projector.compute_output_shape(input_shape)
-
         self.decoder_subnet.build(input_shape)
-        input_shape = self.decoder_subnet.compute_output_shape(input_shape)
-        self.decoder_projector.build(input_shape)
+
+        output_shape = self.encoder_subnet.compute_output_shape(input_shape)
+        self.encoder_projector.build(output_shape)
+
+        output_shape = self.decoder_subnet.compute_output_shape(input_shape)
+        self.decoder_projector.build(output_shape)
 
     def _forward(
         self, x: Tensor, conditions: Tensor = None, density: bool = False, training: bool = False, **kwargs
