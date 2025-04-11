@@ -34,6 +34,9 @@ class Residual(keras.Sequential):
             # see https://github.com/keras-team/keras/issues/21147
             return
 
+        # we have to avoid calling super().build() because this causes
+        # shape errors when building on non-sets but doing inference on sets
+        # this is a work-around for https://github.com/keras-team/keras/issues/21158
         output_shape = input_shape
         for layer in self._layers:
             layer.build(output_shape)

@@ -85,6 +85,8 @@ class MLP(keras.Sequential):
 
         # we only care about the last dimension, and using ... signifies to keras.Sequential
         # that any number of batch dimensions is valid (which is what we want for all sublayers)
+        # we also have to avoid calling super().build() because this causes
+        # shape errors when building on non-sets but doing inference on sets
         # this is a work-around for https://github.com/keras-team/keras/issues/21158
         input_shape = (..., input_shape[-1])
 
