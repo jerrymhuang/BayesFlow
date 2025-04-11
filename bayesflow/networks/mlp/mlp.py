@@ -79,7 +79,12 @@ class MLP(keras.Sequential):
             # see https://github.com/keras-team/keras/issues/21147
             return
 
-        super().build(input_shape)
+        self.call(keras.ops.zeros(input_shape))
+        return
+
+        for layer in self._layers:
+            layer.build(input_shape)
+            input_shape = layer.compute_output_shape(input_shape)
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
@@ -103,13 +108,13 @@ class MLP(keras.Sequential):
     def _make_layer(width, activation, kernel_initializer, residual, dropout, norm):
         layers = []
 
-        dense = keras.layers.Dense(width, kernel_initializer=kernel_initializer, name="linear")
+        dense = keras.layers.Dense(width, kernel_initializer=kernel_initializer)
         if norm == "spectral":
             dense = keras.layers.SpectralNormalization(dense)
         layers.append(dense)
 
         if dropout is not None and dropout > 0:
-            layers.append(keras.layers.Dropout(dropout, name="dropout"))
+            layers.append(keras.layers.Dropout(dropout))
 
         activation = keras.activations.get(activation)
         if not isinstance(activation, keras.Layer):
