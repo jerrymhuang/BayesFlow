@@ -3,17 +3,12 @@ import pytest
 from bayesflow.networks import MLP
 
 
-@pytest.fixture(scope="session", params=["mlp", MLP([64, 64])])
-def subnet(request):
-    return request.param
-
-
 @pytest.fixture()
-def flow_matching(subnet):
+def flow_matching():
     from bayesflow.networks import FlowMatching
 
     return FlowMatching(
-        subnet=subnet,
+        subnet=MLP([64, 64]),
         integrate_kwargs={"method": "rk45", "steps": 100},
     )
 
@@ -22,14 +17,14 @@ def flow_matching(subnet):
 def coupling_flow():
     from bayesflow.networks import CouplingFlow
 
-    return CouplingFlow(depth=2)
+    return CouplingFlow(depth=2, subnet="mlp", subnet_kwargs=dict(widths=[64, 64]))
 
 
 @pytest.fixture()
-def free_form_flow(subnet):
+def free_form_flow():
     from bayesflow.experimental import FreeFormFlow
 
-    return FreeFormFlow(encoder_subnet=subnet, decoder_subnet=subnet)
+    return FreeFormFlow(encoder_subnet=MLP([64, 64]), decoder_subnet=MLP([64, 64]))
 
 
 @pytest.fixture()
@@ -48,9 +43,11 @@ def typical_point_inference_network():
 
 
 @pytest.fixture()
-def typical_point_inference_network_subnet(subnet):
+def typical_point_inference_network_subnet():
     from bayesflow.networks import PointInferenceNetwork
     from bayesflow.scores import MeanScore, MedianScore, QuantileScore, MultivariateNormalScore
+
+    subnet = MLP([64, 64])
 
     return PointInferenceNetwork(
         scores=dict(
@@ -66,7 +63,7 @@ def typical_point_inference_network_subnet(subnet):
 @pytest.fixture(
     params=["typical_point_inference_network", "coupling_flow", "flow_matching", "free_form_flow"], scope="function"
 )
-def inference_network(request, subnet):
+def inference_network(request):
     return request.getfixturevalue(request.param)
 
 
@@ -84,7 +81,7 @@ def inference_network_subnet(request):
 
 
 @pytest.fixture(params=["coupling_flow", "flow_matching", "free_form_flow"], scope="function")
-def generative_inference_network(request, subnet):
+def generative_inference_network(request):
     return request.getfixturevalue(request.param)
 
 
