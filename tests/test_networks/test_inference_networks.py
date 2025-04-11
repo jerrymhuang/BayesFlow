@@ -6,7 +6,7 @@ from keras.saving import (
     serialize_keras_object as serialize,
 )
 
-from tests.utils import assert_allclose, assert_layers_equal
+from tests.utils import assert_allclose, assert_models_equal
 
 
 def test_build(inference_network, random_samples, random_conditions):
@@ -131,4 +131,4 @@ def test_save_and_load(tmp_path, inference_network, random_samples, random_condi
     keras.saving.save_model(inference_network, tmp_path / "model.keras")
     loaded = keras.saving.load_model(tmp_path / "model.keras")
 
-    assert_layers_equal(inference_network, loaded)
+    assert_models_equal(inference_network, loaded)
