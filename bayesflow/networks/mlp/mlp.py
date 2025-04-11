@@ -1,18 +1,16 @@
 from collections.abc import Sequence
-from typing import Literal
+from typing import Literal, Callable
 
 import keras
 
-from bayesflow.types import Tensor
-from bayesflow.utils import model_kwargs
+from bayesflow.utils import sequential_kwargs
 from bayesflow.utils.serialization import deserialize, serializable, serialize
 
-
-from .hidden_block import ConfigurableHiddenBlock
+from ..residual import Residual
 
 
 @serializable
-class MLP(keras.Model):
+class MLP(keras.Sequential):
     """
     Implements a simple configurable MLP with optional residual connections and dropout.
 
@@ -24,18 +22,18 @@ class MLP(keras.Model):
         self,
         widths: Sequence[int] = (256, 256),
         *,
-        activation: str = "mish",
-        kernel_initializer: str = "he_normal",
-        residual: bool = False,
+        activation: str | Callable[[], keras.Layer] = "mish",
+        kernel_initializer: str | keras.Initializer = "he_normal",
+        residual: bool = True,
         dropout: Literal[0, None] | float = 0.05,
-        spectral_normalization: bool = False,
+        norm: Literal["batch", "layer", "spectral"] | keras.Layer = None,
         **kwargs,
     ):
         """
         Implements a flexible multi-layer perceptron (MLP) with optional residual connections, dropout, and
         spectral normalization.
 
-        This MLP can be used as a general-purpose feature extractor or function approximator,supporting configurable
+        This MLP can be used as a general-purpose feature extractor or function approximator, supporting configurable
         depth, width, activation functions, and weight initializations.
 
         If `residual` is enabled, each layer includes a skip connection for improved gradient flow. The model also
@@ -53,54 +51,37 @@ class MLP(keras.Model):
             Whether to use residual connections for improved training stability. Default is False.
         dropout : float or None, optional
             Dropout rate applied within the MLP layers for regularization. Default is 0.05.
+        norm: str, optional
+
         spectral_normalization : bool, optional
             Whether to apply spectral normalization to stabilize training. Default is False.
         **kwargs
             Additional keyword arguments passed to the Keras layer initialization.
         """
-
-        super().__init__(**model_kwargs(kwargs))
-
-        self.res_blocks = []
-        for width in widths:
-            self.res_blocks.append(
-                ConfigurableHiddenBlock(
-                    units=width,
-                    activation=activation,
-                    kernel_initializer=kernel_initializer,
-                    residual=residual,
-                    dropout=dropout,
-                    spectral_normalization=spectral_normalization,
-                )
-            )
-
         self.widths = widths
         self.activation = activation
         self.kernel_initializer = kernel_initializer
         self.residual = residual
         self.dropout = dropout
-        self.spectral_normalization = spectral_normalization
+        self.norm = norm
 
-    def build(self, input_shape):
+        layers = []
+
+        for width in widths:
+            layer = self._make_layer(width, activation, kernel_initializer, residual, dropout, norm)
+            layers.append(layer)
+
+        super().__init__(layers, **sequential_kwargs(kwargs))
+
+    def build(self, input_shape=None):
         if self.built:
-            # rebuilding when the network is already built can cause issues with serialization
+            # building when the network is already built can cause issues with serialization
             # see https://github.com/keras-team/keras/issues/21147
             return
 
-        for layer in self.res_blocks:
-            layer.build(input_shape)
-            input_shape = layer.compute_output_shape(input_shape)
+        print("MLP build", input_shape)
 
-    def call(self, x: Tensor, training: bool = False, **kwargs) -> Tensor:
-        for layer in self.res_blocks:
-            x = layer(x, training=training)
-        return x
-
-    def compute_output_shape(self, input_shape):
-        for layer in self.res_blocks:
-            input_shape = layer.compute_output_shape(input_shape)
-
-        return input_shape
+        super().build(input_shape)
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
@@ -115,7 +96,45 @@ class MLP(keras.Model):
             "kernel_initializer": self.kernel_initializer,
             "residual": self.residual,
             "dropout": self.dropout,
-            "spectral_normalization": self.spectral_normalization,
+            "norm": self.norm,
         }
 
         return base_config | serialize(config)
+
+    @staticmethod
+    def _make_layer(width, activation, kernel_initializer, residual, dropout, norm):
+        layers = []
+
+        dense = keras.layers.Dense(width, kernel_initializer=kernel_initializer, name="linear")
+        if norm == "spectral":
+            dense = keras.layers.SpectralNormalization(dense)
+        layers.append(dense)
+
+        if dropout is not None and dropout > 0:
+            layers.append(keras.layers.Dropout(dropout, name="dropout"))
+
+        activation = keras.activations.get(activation)
+        if not isinstance(activation, keras.Layer):
+            activation = keras.layers.Activation(activation, name=activation.__name__)
+
+        layers.append(activation)
+
+        if residual:
+            layer = Residual(*layers)
+        else:
+            layer = keras.Sequential(layers)
+
+        if norm == "batch":
+            layer.add(keras.layers.BatchNormalization())
+        elif norm == "layer":
+            layer.add(keras.layers.LayerNormalization())
+        elif isinstance(norm, str):
+            raise ValueError(f"Unknown normalization strategy: {norm!r}.")
+        elif isinstance(norm, keras.Layer):
+            layer.add(norm)
+        elif norm is None:
+            pass
+        else:
+            raise TypeError(f"Cannot infer norm from {norm!r} of type {type(norm)}.")
+
+        return layer
