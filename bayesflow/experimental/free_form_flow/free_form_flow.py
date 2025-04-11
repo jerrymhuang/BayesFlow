@@ -101,10 +101,10 @@ class FreeFormFlow(InferenceNetwork):
             decoder_subnet_kwargs = FreeFormFlow.DECODER_MLP_DEFAULT_CONFIG.copy() | decoder_subnet_kwargs
 
         self.encoder_subnet = find_network(encoder_subnet, **encoder_subnet_kwargs)
-        self.encoder_projector = keras.layers.Dense(units=0, bias_initializer="zeros", kernel_initializer="zeros")
+        self.encoder_projector = keras.layers.Dense(units=None, bias_initializer="zeros", kernel_initializer="zeros")
 
         self.decoder_subnet = find_network(decoder_subnet, **decoder_subnet_kwargs)
-        self.decoder_projector = keras.layers.Dense(units=0, bias_initializer="zeros", kernel_initializer="zeros")
+        self.decoder_projector = keras.layers.Dense(units=None, bias_initializer="zeros", kernel_initializer="zeros")
 
         self.hutchinson_sampling = hutchinson_sampling
         self.beta = beta
@@ -117,10 +117,6 @@ class FreeFormFlow(InferenceNetwork):
             # building when the network is already built can cause issues with serialization
             # see https://github.com/keras-team/keras/issues/21147
             return
-
-        print("FFF build", xz_shape, conditions_shape)
-        print(f"{self.encoder_subnet.built=}")
-        print(f"{self.decoder_subnet.built=}")
 
         self.base_distribution.build(xz_shape)
 

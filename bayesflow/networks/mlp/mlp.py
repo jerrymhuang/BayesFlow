@@ -79,8 +79,6 @@ class MLP(keras.Sequential):
             # see https://github.com/keras-team/keras/issues/21147
             return
 
-        print("MLP build", input_shape)
-
         super().build(input_shape)
 
     @classmethod
