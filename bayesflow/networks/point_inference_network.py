@@ -20,7 +20,7 @@ class PointInferenceNetwork(keras.Model):
     def __init__(
         self,
         scores: dict[str, ScoringRule],
-        subnet: str | type = "mlp",
+        subnet: str | keras.Layer = "mlp",
         **kwargs,
     ):
         super().__init__(**model_kwargs(kwargs))
