@@ -6,8 +6,8 @@ import warnings
 from bayesflow.distributions import Distribution
 from bayesflow.types import Tensor
 from bayesflow.utils import (
-    find_network,
     concatenate_valid,
+    find_network,
     jacobian,
     jvp,
     vjp,
@@ -82,7 +82,7 @@ class FreeFormFlow(InferenceNetwork):
         **kwargs              : dict, optional, default: {}
             Additional keyword arguments
         """
-        super().__init__(base_distribution=base_distribution, **kwargs)
+        super().__init__(base_distribution, **kwargs)
 
         if encoder_subnet_kwargs or decoder_subnet_kwargs:
             warnings.warn(
@@ -101,33 +101,15 @@ class FreeFormFlow(InferenceNetwork):
             decoder_subnet_kwargs = FreeFormFlow.DECODER_MLP_DEFAULT_CONFIG.copy() | decoder_subnet_kwargs
 
         self.encoder_subnet = find_network(encoder_subnet, **encoder_subnet_kwargs)
-        self.encoder_projector = keras.layers.Dense(units=None, bias_initializer="zeros", kernel_initializer="zeros")
+        self.encoder_projector = keras.layers.Dense(units=0, bias_initializer="zeros", kernel_initializer="zeros")
 
         self.decoder_subnet = find_network(decoder_subnet, **decoder_subnet_kwargs)
-        self.decoder_projector = keras.layers.Dense(units=None, bias_initializer="zeros", kernel_initializer="zeros")
+        self.decoder_projector = keras.layers.Dense(units=0, bias_initializer="zeros", kernel_initializer="zeros")
 
         self.hutchinson_sampling = hutchinson_sampling
         self.beta = beta
 
         self.seed_generator = keras.random.SeedGenerator()
-
-    def get_config(self):
-        base_config = super().get_config()
-
-        config = {
-            "beta": self.beta,
-            "encoder_subnet": self.encoder_subnet,
-            "decoder_subnet": self.decoder_subnet,
-            "base_distribution": self.base_distribution,
-            "hutchinson_sampling": self.hutchinson_sampling,
-            # we do not need to store subnet_kwargs
-        }
-
-        return base_config | serialize(config)
-
-    @classmethod
-    def from_config(cls, config, custom_objects=None):
-        return cls(**deserialize(config, custom_objects=custom_objects))
 
     # noinspection PyMethodOverriding
     def build(self, xz_shape, conditions_shape=None):
@@ -135,6 +117,10 @@ class FreeFormFlow(InferenceNetwork):
             # building when the network is already built can cause issues with serialization
             # see https://github.com/keras-team/keras/issues/21147
             return
+
+        print("FFF build", xz_shape, conditions_shape)
+        print(f"{self.encoder_subnet.built=}")
+        print(f"{self.decoder_subnet.built=}")
 
         self.base_distribution.build(xz_shape)
 
@@ -150,11 +136,11 @@ class FreeFormFlow(InferenceNetwork):
         input_shape = tuple(input_shape)
 
         self.encoder_subnet.build(input_shape)
-        self.decoder_subnet.build(input_shape)
-
         input_shape = self.encoder_subnet.compute_output_shape(input_shape)
         self.encoder_projector.build(input_shape)
+        input_shape = self.encoder_projector.compute_output_shape(input_shape)
 
+        self.decoder_subnet.build(input_shape)
         input_shape = self.decoder_subnet.compute_output_shape(input_shape)
         self.decoder_projector.build(input_shape)
 
@@ -254,3 +240,21 @@ class FreeFormFlow(InferenceNetwork):
         loss = weighted_sum(losses, sample_weight)
 
         return base_metrics | {"loss": loss}
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config, custom_objects=custom_objects))
+
+    def get_config(self):
+        base_config = super().get_config()
+
+        config = {
+            "beta": self.beta,
+            "encoder_subnet": self.encoder_subnet,
+            "decoder_subnet": self.decoder_subnet,
+            "base_distribution": self.base_distribution,
+            "hutchinson_sampling": self.hutchinson_sampling,
+            # we do not need to store subnet_kwargs
+        }
+
+        return base_config | serialize(config)
