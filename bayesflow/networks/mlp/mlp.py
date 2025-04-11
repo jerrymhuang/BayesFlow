@@ -83,6 +83,10 @@ class MLP(keras.Sequential):
             # see https://github.com/keras-team/keras/issues/21147
             return
 
+        # we only care about the last dimension, and using ... signifies to keras.Sequential
+        # that any number of batch dimensions is valid (which is what we want for all sublayers)
+        input_shape = (..., input_shape[-1])
+
         for layer in self._layers:
             layer.build(input_shape)
             input_shape = layer.compute_output_shape(input_shape)
