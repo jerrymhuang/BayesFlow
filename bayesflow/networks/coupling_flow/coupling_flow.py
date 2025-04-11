@@ -1,20 +1,19 @@
 import keras
-from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Tensor
 from bayesflow.utils import (
     find_permutation,
-    serialize_value_or_type,
-    deserialize_value_or_type,
+    model_kwargs,
     weighted_sum,
 )
+from bayesflow.utils.serialization import deserialize, serializable, serialize
 
 from .actnorm import ActNorm
 from .couplings import DualCoupling
 from ..inference_network import InferenceNetwork
 
 
-@serializable(package="networks.coupling_flow")
+@serializable
 class CouplingFlow(InferenceNetwork):
     """Implements a coupling flow as a sequence of dual couplings with permutations and activation
     normalization. Incorporates ideas from [1-5].
@@ -89,7 +88,11 @@ class CouplingFlow(InferenceNetwork):
         """
         super().__init__(base_distribution=base_distribution, **kwargs)
 
+        self.subnet = subnet
         self.depth = depth
+        self.transform = transform
+        self.permutation = permutation
+        self.use_actnorm = use_actnorm
 
         self.invertible_layers = []
         for i in range(depth):
@@ -101,17 +104,6 @@ class CouplingFlow(InferenceNetwork):
 
             self.invertible_layers.append(DualCoupling(subnet, transform, **kwargs.get("coupling_kwargs", {})))
 
-        # serialization: store all parameters necessary to call __init__
-        self.config = {
-            "depth": depth,
-            "transform": transform,
-            "permutation": permutation,
-            "use_actnorm": use_actnorm,
-            "base_distribution": base_distribution,
-            **kwargs,
-        }
-        self.config = serialize_value_or_type(self.config, "subnet", subnet)
-
     # noinspection PyMethodOverriding
     def build(self, xz_shape, conditions_shape=None):
         for layer in self.invertible_layers:
@@ -119,14 +111,24 @@ class CouplingFlow(InferenceNetwork):
 
         self.base_distribution.build(xz_shape)
 
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config, custom_objects=custom_objects))
+
     def get_config(self):
         base_config = super().get_config()
-        return base_config | self.config
+        base_config = model_kwargs(base_config)
 
-    @classmethod
-    def from_config(cls, config):
-        config = deserialize_value_or_type(config, "subnet")
-        return cls(**config)
+        config = {
+            "subnet": self.subnet,
+            "depth": self.depth,
+            "transform": self.transform,
+            "permutation": self.permutation,
+            "use_actnorm": self.use_actnorm,
+            "base_distribution": self.base_distribution,
+        }
+
+        return base_config | serialize(config)
 
     def _forward(
         self, x: Tensor, conditions: Tensor = None, density: bool = False, training: bool = False, **kwargs
