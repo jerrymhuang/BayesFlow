@@ -85,6 +85,7 @@ class MLP(keras.Sequential):
 
         # we only care about the last dimension, and using ... signifies to keras.Sequential
         # that any number of batch dimensions is valid (which is what we want for all sublayers)
+        # this is a work-around for https://github.com/keras-team/keras/issues/21158
         input_shape = (..., input_shape[-1])
 
         for layer in self._layers:
@@ -114,13 +115,13 @@ class MLP(keras.Sequential):
     def _make_layer(width, activation, kernel_initializer, residual, dropout, norm, spectral_normalization):
         layers = []
 
-        dense = keras.layers.Dense(width, kernel_initializer=kernel_initializer)
+        dense = keras.layers.Dense(width, kernel_initializer=kernel_initializer, name="linear")
         if spectral_normalization:
             dense = keras.layers.SpectralNormalization(dense)
         layers.append(dense)
 
         if dropout is not None and dropout > 0:
-            layers.append(keras.layers.Dropout(dropout))
+            layers.append(keras.layers.Dropout(dropout, name="dropout"))
 
         activation = keras.activations.get(activation)
         if not isinstance(activation, keras.Layer):
