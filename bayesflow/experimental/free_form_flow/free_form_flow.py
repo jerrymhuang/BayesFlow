@@ -10,6 +10,7 @@ from bayesflow.utils import (
     find_network,
     jacobian,
     jvp,
+    model_kwargs,
     vjp,
     weighted_sum,
 )
@@ -243,6 +244,7 @@ class FreeFormFlow(InferenceNetwork):
 
     def get_config(self):
         base_config = super().get_config()
+        base_config = model_kwargs(base_config)
 
         config = {
             "beta": self.beta,
