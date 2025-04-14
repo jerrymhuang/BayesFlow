@@ -11,9 +11,17 @@ from bayesflow.utils.serialization import serializable
 class MultiHeadAttentionBlock(keras.Model):
     """Implements the MAB block from [1] which represents learnable cross-attention.
 
+    In particular, it uses a so-called "Post-LN" transformer block [2] which applies
+    layer norm following attention and following MLP. A "Pre-LN" transformer block
+    can easily be implemented.
+
     [1] Lee, J., Lee, Y., Kim, J., Kosiorek, A., Choi, S., & Teh, Y. W. (2019).
         Set transformer: A framework for attention-based permutation-invariant neural networks.
         In International conference on machine learning (pp. 3744-3753). PMLR.
+
+    [2] Xiong, R., Yang, Y., He, D., Zheng, K., Zheng, S., Xing, C., ... & Liu, T. (2020, November).
+    On layer normalization in the transformer architecture.
+    In International conference on machine learning (pp. 10524-10533). PMLR.
     """
 
     def __init__(

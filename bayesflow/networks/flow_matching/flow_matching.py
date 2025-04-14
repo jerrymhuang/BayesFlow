@@ -13,7 +13,7 @@ from bayesflow.utils import (
     jacobian_trace,
     model_kwargs,
     optimal_transport,
-    weighted_sum,
+    weighted_mean,
 )
 from bayesflow.utils.serialization import serialize, deserialize, serializable
 from ..inference_network import InferenceNetwork
@@ -271,6 +271,6 @@ class FlowMatching(InferenceNetwork):
         predicted_velocity = self.velocity(x, time=t, conditions=conditions, training=stage == "training")
 
         loss = self.loss_fn(target_velocity, predicted_velocity)
-        loss = weighted_sum(loss, sample_weight)
+        loss = weighted_mean(loss, sample_weight)
 
         return base_metrics | {"loss": loss}

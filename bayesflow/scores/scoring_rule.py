@@ -204,30 +204,3 @@ class ScoringRule:
         <tf.Tensor: shape=(), dtype=float32, numpy=1.013983130455017>
         """
         raise NotImplementedError
-
-    def aggregate(self, scores: Tensor, weights: Tensor = None) -> Tensor:
-        """
-        Computes the mean of **scores**, optionally applying **weights**.
-
-        This function computes the mean value of the given scores. When weights are provided,
-        it first multiplies the scores by the weights and then computes the mean of the result.
-        If no weights are provided, it computes the mean of the scores.
-
-        Parameters
-        ----------
-        scores : Tensor
-            A tensor containing the scores to be aggregated.
-        weights : Tensor, optional (default - None)
-            A tensor of weights corresponding to each score. Must be the same shape as `scores`.
-            If not provided, the function returns the mean of `scores`.
-
-        Returns
-        -------
-        Tensor
-            The aggregated score computed as a weighted mean if **weights** is provided,
-            or as the simple mean of **scores** otherwise.
-        """
-
-        if weights is not None:
-            return keras.ops.mean(scores * weights)
-        return keras.ops.mean(scores)

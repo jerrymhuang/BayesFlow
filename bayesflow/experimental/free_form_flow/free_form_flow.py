@@ -12,7 +12,7 @@ from bayesflow.utils import (
     jvp,
     model_kwargs,
     vjp,
-    weighted_sum,
+    weighted_mean,
 )
 from bayesflow.utils.serialization import deserialize, serializable, serialize
 
@@ -238,7 +238,7 @@ class FreeFormFlow(InferenceNetwork):
         reconstruction_loss = ops.sum((x - x_pred) ** 2, axis=-1)
 
         losses = maximum_likelihood_loss + self.beta * reconstruction_loss
-        loss = weighted_sum(losses, sample_weight)
+        loss = weighted_mean(losses, sample_weight)
 
         return base_metrics | {"loss": loss}
 

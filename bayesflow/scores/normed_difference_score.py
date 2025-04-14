@@ -2,6 +2,7 @@ import keras
 from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Shape, Tensor
+from bayesflow.utils import weighted_mean
 
 from .scoring_rule import ScoringRule
 
@@ -55,7 +56,7 @@ class NormedDifferenceScore(ScoringRule):
         """
         estimates = estimates["value"]
         scores = keras.ops.absolute(estimates - targets) ** self.k
-        score = self.aggregate(scores, weights)
+        score = weighted_mean(scores, weights)
         return score
 
     def get_config(self):

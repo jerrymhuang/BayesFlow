@@ -17,6 +17,7 @@ class NumpyTransform(ElementwiseTransform):
         The name of the NumPy function to apply in the inverse transformation.
     """
 
+    #: Dict of `np.ufunc` that support automatic selection of their inverse.
     INVERSE_METHODS = {
         np.arctan: np.tan,
         np.exp: np.log,

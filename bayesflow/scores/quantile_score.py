@@ -4,7 +4,7 @@ import keras
 from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Shape, Tensor
-from bayesflow.utils import logging
+from bayesflow.utils import logging, weighted_mean
 from bayesflow.links import OrderedQuantiles
 
 from .scoring_rule import ScoringRule
@@ -39,7 +39,7 @@ class QuantileScore(ScoringRule):
         base_config = super().get_config()
         return base_config | self.config
 
-    def get_head_shapes_from_target_shape(self, target_shape: Shape):
+    def get_head_shapes_from_target_shape(self, target_shape: Shape) -> dict[str, tuple]:
         # keras.saving.load_model sometimes passes target_shape as a list, so we force a conversion
         target_shape = tuple(target_shape)
         return dict(value=(len(self.q),) + target_shape[1:])
@@ -49,5 +49,5 @@ class QuantileScore(ScoringRule):
         pointwise_differance = estimates - targets[:, None, :]
         scores = pointwise_differance * (keras.ops.cast(pointwise_differance > 0, float) - self._q[None, :, None])
         scores = keras.ops.mean(scores, axis=1)
-        score = self.aggregate(scores, weights)
+        score = weighted_mean(scores, weights)
         return score

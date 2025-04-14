@@ -140,7 +140,7 @@ def pad(x: Tensor, value: float | Tensor, n: int, axis: int, side: str = "both")
             raise TypeError(f"Invalid side type {type(side)!r}. Must be str.")
 
 
-def weighted_sum(elements: Tensor, weights: Tensor = None) -> Tensor:
+def weighted_mean(elements: Tensor, weights: Tensor = None) -> Tensor:
     """
     Compute the (optionally) weighted mean of the input tensor.
 

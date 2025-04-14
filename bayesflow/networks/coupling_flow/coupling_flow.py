@@ -4,7 +4,7 @@ from bayesflow.types import Tensor
 from bayesflow.utils import (
     find_permutation,
     model_kwargs,
-    weighted_sum,
+    weighted_mean,
 )
 from bayesflow.utils.serialization import deserialize, serializable, serialize
 
@@ -168,6 +168,6 @@ class CouplingFlow(InferenceNetwork):
         base_metrics = super().compute_metrics(x, conditions=conditions, stage=stage)
 
         z, log_density = self(x, conditions=conditions, inverse=False, density=True)
-        loss = weighted_sum(-log_density, sample_weight)
+        loss = weighted_mean(-log_density, sample_weight)
 
         return base_metrics | {"loss": loss}

@@ -1,6 +1,7 @@
 from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Tensor
+from bayesflow.utils import weighted_mean
 
 from .scoring_rule import ScoringRule
 
@@ -29,5 +30,5 @@ class ParametricDistributionScore(ScoringRule):
         :math:`S(\hat p_\phi, \theta; k) = -\log(\hat p_\phi(\theta))`
         """
         scores = -self.log_prob(x=targets, **estimates)
-        score = self.aggregate(scores, weights)
+        score = weighted_mean(scores, weights)
         return score

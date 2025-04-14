@@ -9,15 +9,12 @@ from bayesflow.utils.serialization import serializable
 @serializable
 class SkipRecurrentNet(keras.Model):
     """
-    Implements a Skip recurrent layer as described in [1], but allowing a more flexible
-    recurrent backbone and a more flexible implementation.
+    Implements a Skip recurrent layer as described in [1], allowing a more flexible recurrent backbone
+    and a more efficient implementation.
 
     [1] Y. Zhang and L. Mikelsons, Solving Stochastic Inverse Problems with Stochastic BayesFlow,
     2023 IEEE/ASME International Conference on Advanced Intelligent Mechatronics (AIM),
     Seattle, WA, USA, 2023, pp. 966-972, doi: 10.1109/AIM46323.2023.10196190.
-
-    TODO: Add proper docstring
-
     """
 
     def __init__(
@@ -30,6 +27,31 @@ class SkipRecurrentNet(keras.Model):
         dropout: float = 0.05,
         **kwargs,
     ):
+        """
+        Creates a skip recurrent neural network layer that extends a traditional recurrent backbone with
+        skip connections implemented via convolution and an additional recurrent path. This allows
+        more efficient modeling of long-term dependencies by combining local and non-local temporal
+        features.
+
+        Parameters
+        ----------
+        hidden_dim : int, optional
+            Dimensionality of the hidden state in the recurrent layers. Default is 256.
+        recurrent_type : str, optional
+            Type of recurrent unit to use. Should correspond to a supported type in `find_recurrent_net`,
+            such as "gru" or "lstm". Default is "gru".
+        bidirectional : bool, optional
+            If True, uses bidirectional wrappers for both recurrent and skip recurrent layers. Default is True.
+        input_channels : int, optional
+            Number of input channels for the 1D convolution used in skip connections. Default is 64.
+        skip_steps : int, optional
+            Step size and kernel size used in the skip convolution. Determines how many steps are skipped.
+            Also determines the multiplier for the number of filters. Default is 4.
+        dropout : float, optional
+            Dropout rate applied within the recurrent layers. Default is 0.05.
+        **kwargs
+            Additional keyword arguments passed to the parent class constructor.
+        """
         super().__init__(**model_kwargs(kwargs))
 
         self.skip_conv = keras.layers.Conv1D(
@@ -69,4 +91,4 @@ class SkipRecurrentNet(keras.Model):
 
     @sanitize_input_shape
     def build(self, input_shape):
-        self.call(keras.ops.zeros(input_shape))
+        super().build(input_shape)

@@ -73,7 +73,7 @@ from .tensor_utils import (
     tree_concatenate,
     tree_stack,
     fill_triangular_matrix,
-    weighted_sum,
+    weighted_mean,
 )
 from .classification import calibration_curve, confusion_matrix
 from .validators import check_lengths_same

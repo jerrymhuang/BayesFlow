@@ -844,9 +844,11 @@ class BasicWorkflow(Workflow):
 
         # Default case
         learning_rate = keras.optimizers.schedules.CosineDecay(
-            initial_learning_rate=self.initial_learning_rate,
+            initial_learning_rate=0.5 * self.initial_learning_rate,
+            warmup_target=self.initial_learning_rate,
+            warmup_steps=num_batches,
             decay_steps=epochs * num_batches,
-            alpha=self.initial_learning_rate**2,
+            alpha=0,
         )
 
         # Use adam for online learning, apply weight decay otherwise

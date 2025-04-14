@@ -7,8 +7,9 @@ from . import (
     experimental,
     networks,
     simulators,
-    workflows,
     utils,
+    workflows,
+    wrappers,
 )
 
 from .adapters import Adapter
