@@ -59,7 +59,7 @@ class MLP(keras.Sequential):
         **kwargs
             Additional keyword arguments passed to the Keras layer initialization.
         """
-        self.widths = widths
+        self.widths = list(widths)
         self.activation = activation
         self.kernel_initializer = kernel_initializer
         self.residual = residual
