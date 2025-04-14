@@ -1,10 +1,8 @@
 import keras
 import numpy as np
 import pytest
-from keras.saving import (
-    deserialize_keras_object as deserialize,
-    serialize_keras_object as serialize,
-)
+
+from bayesflow.utils.serialization import serialize, deserialize
 
 from tests.utils import assert_allclose, assert_models_equal
 
@@ -119,7 +117,7 @@ def test_serialize_deserialize(inference_network, random_samples, random_conditi
     deserialized = deserialize(serialized)
     reserialized = serialize(deserialized)
 
-    assert serialized == reserialized
+    assert keras.tree.lists_to_tuples(serialized) == keras.tree.lists_to_tuples(reserialized)
 
 
 def test_save_and_load(tmp_path, inference_network, random_samples, random_conditions):
