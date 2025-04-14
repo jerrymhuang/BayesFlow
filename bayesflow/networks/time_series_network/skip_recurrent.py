@@ -1,12 +1,12 @@
 import keras
-from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Tensor
 from bayesflow.utils import model_kwargs, find_recurrent_net
 from bayesflow.utils.decorators import sanitize_input_shape
+from bayesflow.utils.serialization import serializable
 
 
-@serializable(package="bayesflow.networks")
+@serializable
 class SkipRecurrentNet(keras.Model):
     """
     Implements a Skip recurrent layer as described in [1], but allowing a more flexible
@@ -37,6 +37,7 @@ class SkipRecurrentNet(keras.Model):
             kernel_size=skip_steps,
             strides=skip_steps,
             padding="same",
+            name="skip_conv",
         )
 
         recurrent_constructor = find_recurrent_net(recurrent_type)
@@ -45,13 +46,17 @@ class SkipRecurrentNet(keras.Model):
             units=hidden_dim // 2 if bidirectional else hidden_dim,
             dropout=dropout,
         )
+        recurrent.name = "recurrent"
+
         skip_recurrent = recurrent_constructor(
             units=hidden_dim // 2 if bidirectional else hidden_dim,
             dropout=dropout,
         )
+        skip_recurrent.name = "skip_recurrent"
+
         if bidirectional:
-            recurrent = keras.layers.Bidirectional(recurrent)
-            skip_recurrent = keras.layers.Bidirectional(skip_recurrent)
+            recurrent = keras.layers.Bidirectional(recurrent, name="bidirectional_recurrent")
+            skip_recurrent = keras.layers.Bidirectional(skip_recurrent, name="bidirectional_skip_recurrent")
 
         self.recurrent = recurrent
         self.skip_recurrent = skip_recurrent
