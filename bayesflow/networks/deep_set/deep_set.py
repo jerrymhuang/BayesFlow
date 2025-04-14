@@ -4,8 +4,6 @@ import keras
 from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Tensor
-from bayesflow.utils import filter_kwargs
-from bayesflow.utils.decorators import sanitize_input_shape
 
 from .equivariant_module import EquivariantModule
 from .invariant_module import InvariantModule
@@ -98,7 +96,7 @@ class DeepSet(SummaryNetwork):
                 spectral_normalization=spectral_normalization,
                 dropout=dropout,
                 pooling=inner_pooling,
-                **filter_kwargs(kwargs, EquivariantModule),
+                name="equivariant_module",
             )
             self.equivariant_modules.append(equivariant_module)
 
@@ -111,17 +109,12 @@ class DeepSet(SummaryNetwork):
             dropout=dropout,
             pooling=output_pooling,
             spectral_normalization=spectral_normalization,
-            **filter_kwargs(kwargs, InvariantModule),
+            name="invariant_module",
         )
 
         # Output linear layer to project set representation down to "summary_dim" learned summary statistics
-        self.output_projector = keras.layers.Dense(summary_dim, activation="linear")
+        self.output_projector = keras.layers.Dense(summary_dim, activation="linear", name="output_projector")
         self.summary_dim = summary_dim
-
-    @sanitize_input_shape
-    def build(self, input_shape):
-        super().build(input_shape)
-        self.call(keras.ops.zeros(input_shape))
 
     def call(self, x: Tensor, training: bool = False, **kwargs) -> Tensor:
         """
