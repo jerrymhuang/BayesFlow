@@ -1,8 +1,8 @@
 import keras
 
 from bayesflow.types import Tensor
-from bayesflow.utils import check_lengths_same
-from bayesflow.utils.serialization import serializable
+from bayesflow.utils import check_lengths_same, model_kwargs
+from bayesflow.utils.serialization import deserialize, serializable, serialize
 
 from ..summary_network import SummaryNetwork
 
@@ -127,7 +127,20 @@ class SetTransformer(SummaryNetwork):
             **(global_attention_settings | pooling_settings), name="pma"
         )
         self.output_projector = keras.layers.Dense(summary_dim, name="output_projector")
+
         self.summary_dim = summary_dim
+        self.embed_dims = embed_dims
+        self.num_heads = num_heads
+        self.mlp_depths = mlp_depths
+        self.mlp_widths = mlp_widths
+        self.num_seeds = num_seeds
+        self.dropout = dropout
+        self.mlp_activation = mlp_activation
+        self.kernel_initializer = kernel_initializer
+        self.use_bias = use_bias
+        self.layer_norm = layer_norm
+        self.num_inducing_points = num_inducing_points
+        self.seed_dim = seed_dim
 
     def call(self, input_set: Tensor, training: bool = False, **kwargs) -> Tensor:
         """Compresses the input sequence into a summary vector of size `summary_dim`.
@@ -152,3 +165,29 @@ class SetTransformer(SummaryNetwork):
         summary = self.pooling_by_attention(summary, training=training, **kwargs)
         summary = self.output_projector(summary)
         return summary
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config, custom_objects=custom_objects))
+
+    def get_config(self):
+        base_config = super().get_config()
+        base_config = model_kwargs(base_config)
+
+        config = {
+            "summary_dim": self.summary_dim,
+            "embed_dims": self.embed_dims,
+            "num_heads": self.num_heads,
+            "mlp_depths": self.mlp_depths,
+            "mlp_widths": self.mlp_widths,
+            "num_seeds": self.num_seeds,
+            "dropout": self.dropout,
+            "mlp_activation": self.mlp_activation,
+            "kernel_initializer": self.kernel_initializer,
+            "use_bias": self.use_bias,
+            "layer_norm": self.layer_norm,
+            "num_inducing_points": self.num_inducing_points,
+            "seed_dim": self.seed_dim,
+        }
+
+        return base_config | serialize(config)
