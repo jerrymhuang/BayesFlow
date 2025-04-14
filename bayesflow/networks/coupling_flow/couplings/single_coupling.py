@@ -42,7 +42,9 @@ class SingleCoupling(InvertibleLayer):
         self.subnet = find_network(subnet, **subnet_kwargs)
         self.transform = find_transform(transform, **kwargs.get("transform_kwargs", {}))
 
-        self.output_projector = keras.layers.Dense(units=None, kernel_initializer="zeros", bias_initializer="zeros")
+        self.output_projector = keras.layers.Dense(
+            units=None, kernel_initializer="zeros", bias_initializer="zeros", name="output_projector"
+        )
 
     def get_config(self):
         base_config = super().get_config()

@@ -117,7 +117,7 @@ class FlowMatching(InferenceNetwork):
             subnet_kwargs = FlowMatching.MLP_DEFAULT_CONFIG | subnet_kwargs
 
         self.subnet = find_network(subnet, **subnet_kwargs)
-        self.output_projector = keras.layers.Dense(units=None, bias_initializer="zeros")
+        self.output_projector = keras.layers.Dense(units=None, bias_initializer="zeros", name="output_projector")
 
     def build(self, xz_shape: Shape, conditions_shape: Shape = None) -> None:
         if self.built:

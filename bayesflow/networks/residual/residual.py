@@ -12,7 +12,7 @@ class Residual(keras.Sequential):
         if len(layers) == 1 and isinstance(layers[0], Sequence):
             layers = layers[0]
         super().__init__(list(layers), **sequential_kwargs(kwargs))
-        self.projector = keras.layers.Dense(units=None)
+        self.projector = keras.layers.Dense(units=None, name="projector")
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
