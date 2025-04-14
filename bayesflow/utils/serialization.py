@@ -1,4 +1,3 @@
-from collections.abc import Collection
 from copy import copy
 
 import inspect
@@ -106,7 +105,7 @@ def serializable(cls, package=None, name=None):
 
 
 def serialize(obj):
-    if not isinstance(obj, str) and isinstance(obj, Collection):
+    if isinstance(obj, (tuple, list, dict)):
         return keras.tree.map_structure(serialize, obj)
 
     if inspect.isclass(obj):
