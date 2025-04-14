@@ -1,13 +1,14 @@
 import keras
 from keras import layers
-from keras.saving import register_keras_serializable as serializable
 
-from bayesflow.types import Tensor
 from bayesflow.networks import MLP
+from bayesflow.types import Tensor
+from bayesflow.utils import model_kwargs
+from bayesflow.utils.serialization import serializable
 
 
-@serializable(package="bayesflow.networks")
-class MultiHeadAttentionBlock(keras.Layer):
+@serializable
+class MultiHeadAttentionBlock(keras.Model):
     """Implements the MAB block from [1] which represents learnable cross-attention.
 
     [1] Lee, J., Lee, Y., Kim, J., Kosiorek, A., Choi, S., & Teh, Y. W. (2019).
@@ -55,21 +56,26 @@ class MultiHeadAttentionBlock(keras.Layer):
             Additional keyword arguments passed to the Keras Layer base class.
         """
 
-        super().__init__(**kwargs)
+        super().__init__(**model_kwargs(kwargs))
 
-        self.input_projector = layers.Dense(embed_dim)
+        self.input_projector = layers.Dense(embed_dim, name="input_projector")
         self.attention = layers.MultiHeadAttention(
-            key_dim=embed_dim, num_heads=num_heads, dropout=dropout, use_bias=use_bias, output_shape=embed_dim
+            key_dim=embed_dim,
+            num_heads=num_heads,
+            dropout=dropout,
+            use_bias=use_bias,
+            output_shape=embed_dim,
+            name="attention",
         )
-        self.ln_pre = layers.LayerNormalization() if layer_norm else None
+        self.ln_pre = layers.LayerNormalization(name="layer_norm_pre") if layer_norm else None
         self.mlp = MLP(
             widths=(mlp_width,) * mlp_depth,
             activation=mlp_activation,
             kernel_initializer=kernel_initializer,
             dropout=dropout,
         )
-        self.output_projector = layers.Dense(embed_dim)
-        self.ln_post = layers.LayerNormalization() if layer_norm else None
+        self.output_projector = layers.Dense(embed_dim, name="output_projector")
+        self.ln_post = layers.LayerNormalization(name="layer_norm_post") if layer_norm else None
 
     def call(self, seq_x: Tensor, seq_y: Tensor, training: bool = False, **kwargs) -> Tensor:
         """Performs the forward pass through the attention layer.
@@ -107,5 +113,9 @@ class MultiHeadAttentionBlock(keras.Layer):
 
         return out
 
-    def build(self, input_shape):
-        super().build(input_shape)
+    # noinspection PyMethodOverriding
+    def build(self, seq_x_shape, seq_y_shape):
+        self.call(keras.ops.zeros(seq_x_shape), keras.ops.zeros(seq_y_shape))
+
+    def compute_output_shape(self, seq_x_shape, seq_y_shape):
+        return keras.ops.shape(self.call(keras.ops.zeros(seq_x_shape), keras.ops.zeros(seq_y_shape)))

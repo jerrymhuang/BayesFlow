@@ -1,9 +1,8 @@
 import keras
-from keras.saving import register_keras_serializable as serializable
 
 from bayesflow.types import Tensor
 from bayesflow.utils import check_lengths_same
-from bayesflow.utils.decorators import sanitize_input_shape
+from bayesflow.utils.serialization import serializable
 
 from ..summary_network import SummaryNetwork
 
@@ -12,7 +11,7 @@ from .isab import InducedSetAttentionBlock
 from .pma import PoolingByMultiHeadAttention
 
 
-@serializable(package="bayesflow.networks")
+@serializable
 class SetTransformer(SummaryNetwork):
     """Implements the set transformer architecture from [1] which ultimately represents
     a learnable permutation-invariant function. Designed to naturally model interactions in
@@ -87,7 +86,7 @@ class SetTransformer(SummaryNetwork):
         num_attention_layers = len(embed_dims)
 
         # Construct a series of set-attention blocks
-        self.attention_blocks = keras.Sequential()
+        self.attention_blocks = keras.Sequential(name="attention_blocks")
 
         global_attention_settings = dict(
             dropout=dropout,
@@ -124,8 +123,10 @@ class SetTransformer(SummaryNetwork):
             seed_dim=seed_dim,
             num_seeds=num_seeds,
         )
-        self.pooling_by_attention = PoolingByMultiHeadAttention(**(global_attention_settings | pooling_settings))
-        self.output_projector = keras.layers.Dense(summary_dim)
+        self.pooling_by_attention = PoolingByMultiHeadAttention(
+            **(global_attention_settings | pooling_settings), name="pma"
+        )
+        self.output_projector = keras.layers.Dense(summary_dim, name="output_projector")
         self.summary_dim = summary_dim
 
     def call(self, input_set: Tensor, training: bool = False, **kwargs) -> Tensor:
@@ -151,8 +152,3 @@ class SetTransformer(SummaryNetwork):
         summary = self.pooling_by_attention(summary, training=training, **kwargs)
         summary = self.output_projector(summary)
         return summary
-
-    @sanitize_input_shape
-    def build(self, input_shape):
-        super().build(input_shape)
-        self.call(keras.ops.zeros(input_shape))
