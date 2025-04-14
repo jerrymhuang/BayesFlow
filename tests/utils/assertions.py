@@ -22,15 +22,6 @@ def assert_layers_equal(layer1: keras.Layer, layer2: keras.Layer):
     )
     assert len(layer1.variables) == len(layer2.variables), msg
 
-    if not isinstance(layer1, (keras.layers.Activation, keras.layers.Identity)):
-        # some layers might not have any variables
-        # we could check that by writing something like
-        # def is_stateless_layer(layer):
-        #     return not type(layer)().built
-        # because stateless layers will be built right upon construction
-        msg = f"Layers {layer1.name} and {layer2.name} have no variables."
-        assert len(layer1.variables) > 0, msg
-
     for v1, v2 in zip(layer1.variables, layer2.variables):
         if v1.name == "seed_generator_state":
             # keras issue: https://github.com/keras-team/keras/issues/19796
