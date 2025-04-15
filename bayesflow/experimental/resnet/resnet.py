@@ -30,13 +30,13 @@ class ResNet(keras.Sequential):
         for width in widths:
             layer = DoubleConv(width, use_batchnorm=use_batchnorm, dropout=dropout, activation=activation)
             layer = Residual(layer)
-            activation = keras.activations.get(activation)
-            if not isinstance(activation, keras.Layer):
-                activation = keras.layers.Activation(activation)
+            act = keras.activations.get(activation)
+            if not isinstance(act, keras.Layer):
+                act = keras.layers.Activation(act)
             maxpool = keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2))
 
             layers.append(layer)
-            layers.append(activation)
+            layers.append(act)
             layers.append(maxpool)
 
         super().__init__(layers, **model_kwargs(kwargs))
