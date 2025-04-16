@@ -32,7 +32,7 @@ class MultiHeadAttentionBlock(keras.Model):
         mlp_depth: int = 2,
         mlp_width: int = 128,
         mlp_activation: str = "gelu",
-        kernel_initializer: str = "he_normal",
+        kernel_initializer: str = "lecun_normal",
         use_bias: bool = True,
         layer_norm: bool = True,
         **kwargs,
@@ -55,7 +55,7 @@ class MultiHeadAttentionBlock(keras.Model):
         mlp_activation : str, optional
             Activation function used in the MLP block, by default "gelu".
         kernel_initializer : str, optional
-            Initializer for kernel weights, by default "he_normal".
+            Initializer for kernel weights, by default "lecun_normal".
         use_bias : bool, optional
             Whether to include bias terms in dense layers, by default True.
         layer_norm : bool, optional

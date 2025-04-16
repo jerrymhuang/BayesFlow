@@ -34,7 +34,7 @@ class SummaryNetwork(keras.Model):
         """
         raise NotImplementedError
 
-    def compute_metrics(self, x: Tensor, stage: str = "training") -> dict[str, Tensor]:
+    def compute_metrics(self, x: Tensor, stage: str = "training", **kwargs) -> dict[str, Tensor]:
         outputs = self(x, training=stage == "training")
 
         metrics = {"outputs": outputs}

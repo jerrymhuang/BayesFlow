@@ -21,7 +21,7 @@ class TimeSeriesTransformer(SummaryNetwork):
         mlp_widths: tuple = (128, 128),
         dropout: float = 0.05,
         mlp_activation: str = "gelu",
-        kernel_initializer: str = "he_normal",
+        kernel_initializer: str = "lecun_normal",
         use_bias: bool = True,
         layer_norm: bool = True,
         time_embedding: str = "time2vec",
@@ -49,7 +49,7 @@ class TimeSeriesTransformer(SummaryNetwork):
             Dropout rate applied to the attention and MLP layers. If set to None, no dropout is applied.
         mlp_activation : str, optional (default - 'gelu')
             Activation function used in the dense layers. Common choices include "relu", "elu", and "gelu".
-        kernel_initializer : str, optional (default - 'he_normal')
+        kernel_initializer : str, optional (default - 'lecun_normal')
             Initializer for the kernel weights matrix. Common choices include "glorot_uniform", "he_normal", etc.
         use_bias : bool, optional (default - True)
             Whether to include a bias term in the dense layers.

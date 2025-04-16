@@ -29,8 +29,6 @@ class SingleCoupling(InvertibleLayer):
         self,
         subnet: str | type = "mlp",
         transform: str = "affine",
-        subnet_kwargs: dict[str, any] = None,
-        transform_kwargs: dict[str, any] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)

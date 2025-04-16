@@ -1,9 +1,9 @@
-from keras.saving import (
-    deserialize_keras_object as deserialize,
-    serialize_keras_object as serialize,
-)
-import numpy as np
 import pytest
+import numpy as np
+
+import keras
+
+from bayesflow.utils.serialization import deserialize, serialize
 
 
 def test_cycle_consistency(adapter, random_data):
@@ -24,9 +24,7 @@ def test_serialize_deserialize(adapter, random_data):
     deserialized = deserialize(serialized)
     reserialized = serialize(deserialized)
 
-    assert reserialized.keys() == serialized.keys()
-    for key in reserialized:
-        assert reserialized[key] == serialized[key]
+    assert keras.tree.lists_to_tuples(serialized) == keras.tree.lists_to_tuples(reserialized)
 
     random_data["foo"] = random_data["x1"]
     deserialized_processed = deserialized(random_data)

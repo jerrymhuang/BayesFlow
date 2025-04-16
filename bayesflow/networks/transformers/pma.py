@@ -32,7 +32,7 @@ class PoolingByMultiHeadAttention(keras.Model):
         mlp_depth: int = 2,
         mlp_width: int = 128,
         mlp_activation: str = "gelu",
-        kernel_initializer: str = "he_normal",
+        kernel_initializer: str = "lecun_normal",
         use_bias: bool = True,
         layer_norm: bool = True,
         **kwargs,
@@ -59,7 +59,7 @@ class PoolingByMultiHeadAttention(keras.Model):
             Number of units in each hidden layer of the MLP.
         mlp_activation : str, optional (default="gelu")
             Activation function used in the MLP.
-        kernel_initializer : str, optional (default="he_normal")
+        kernel_initializer : str, optional (default="lecun_normal")
             Initializer for kernel weights in dense layers.
         use_bias : bool, optional (default=True)
             Whether to include bias terms in dense layers.
@@ -126,5 +126,4 @@ class PoolingByMultiHeadAttention(keras.Model):
         return ops.reshape(summaries, (ops.shape(summaries)[0], -1))
 
     def compute_output_shape(self, input_shape):
-        # TODO: improve this
         return keras.ops.shape(self.call(keras.ops.zeros(input_shape)))
