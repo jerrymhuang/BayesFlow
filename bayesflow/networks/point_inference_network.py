@@ -1,14 +1,17 @@
 import keras
+from keras.saving import (
+    deserialize_keras_object as deserialize,
+    serialize_keras_object as serialize,
+    register_keras_serializable as serializable,
+)
 
-
+from bayesflow.utils import model_kwargs, find_network, serialize_value_or_type, deserialize_value_or_type
 from bayesflow.types import Shape, Tensor
 from bayesflow.scores import ScoringRule, ParametricDistributionScore
 from bayesflow.utils.decorators import allow_batch_size
-from bayesflow.utils import model_kwargs, find_network
-from bayesflow.utils.serialization import serialize, deserialize, serializable
 
 
-@serializable
+@serializable(package="networks.point_inference_network")
 class PointInferenceNetwork(keras.Model):
     """Implements point estimation for user specified scoring rules by a shared feed forward architecture
     with separate heads for each scoring rule.
@@ -23,7 +26,14 @@ class PointInferenceNetwork(keras.Model):
         super().__init__(**model_kwargs(kwargs))
 
         self.scores = scores
+
         self.subnet = find_network(subnet, **kwargs.get("subnet_kwargs", {}))
+
+        self.config = {
+            **kwargs,
+        }
+        self.config = serialize_value_or_type(self.config, "subnet", subnet)
+        self.config["scores"] = serialize(self.scores)
 
     def build(self, xz_shape: Shape, conditions_shape: Shape = None) -> None:
         """Builds all network components based on shapes of conditions and targets.
@@ -102,18 +112,15 @@ class PointInferenceNetwork(keras.Model):
 
     def get_config(self):
         base_config = super().get_config()
-        base_config = model_kwargs(base_config)
 
-        config = {
-            "scores": self.scores,
-            "subnet": self.subnet,
-        }
-
-        return base_config | serialize(config)
+        return base_config | self.config
 
     @classmethod
-    def from_config(cls, config, custom_objects=None):
-        return cls(**deserialize(config, custom_objects=custom_objects))
+    def from_config(cls, config):
+        config = config.copy()
+        config["scores"] = deserialize(config["scores"])
+        config = deserialize_value_or_type(config, "subnet")
+        return cls(**config)
 
     def call(
         self,
