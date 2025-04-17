@@ -154,7 +154,7 @@ def test_custom_transform():
     with pytest.raises(ValueError):
         SerializableCustomTransform(forward=registered_fn, inverse=not_registered_fn)
 
-    # function does not match registered function
+    # function does not match the registered function
     with pytest.raises(ValueError):
         SerializableCustomTransform(forward=registered_but_changed, inverse=registered_fn)
     with pytest.raises(ValueError):
@@ -170,7 +170,7 @@ def test_custom_transform():
     with pytest.raises(TypeError):
         keras.saving.deserialize_keras_object(corrupt_serialized_transform)
 
-    # modify name of the inverse transform so that it cannot be found
+    # modify the name of the inverse transform so that it cannot be found
     corrupt_serialized_transform = deepcopy(serialized_transform)
     corrupt_serialized_transform["config"]["inverse"]["config"] = "nonexistent"
     with pytest.raises(TypeError):
