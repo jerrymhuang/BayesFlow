@@ -667,6 +667,18 @@ class Adapter(MutableSequence[Transform]):
         self.transforms.append(MapTransform({key: Shift(shift=by) for key in keys}))
         return self
 
+    def split(self, key: str, *, into: Sequence[str], indices_or_sections: int | Sequence[int] = None, axis: int = -1):
+        from .transforms import Split
+
+        if isinstance(into, str):
+            transform = Rename(key, into)
+        else:
+            transform = Split(key, into, indices_or_sections, axis)
+
+        self.transforms.append(transform)
+
+        return self
+
     def sqrt(self, keys: str | Sequence[str]):
         """Append an :py:class:`~transforms.Sqrt` transform to the adapter.
 

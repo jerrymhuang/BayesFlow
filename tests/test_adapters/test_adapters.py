@@ -175,3 +175,18 @@ def test_custom_transform():
     corrupt_serialized_transform["config"]["inverse"]["config"] = "nonexistent"
     with pytest.raises(TypeError):
         keras.saving.deserialize_keras_object(corrupt_serialized_transform)
+
+
+def test_split_transform(adapter, random_data):
+    assert "key_to_split" in random_data
+
+    shape = random_data["key_to_split"].shape
+    target_shape = (*shape[:-1], shape[-1] // 2)
+
+    processed = adapter(random_data)
+
+    assert "split_1" in processed
+    assert processed["split_1"].shape == target_shape
+
+    assert "split_2" in processed
+    assert processed["split_2"].shape == target_shape

@@ -23,7 +23,7 @@ class Concatenate(Transform):
     Examples
     --------
     Suppose you have a simulator that generates variables "beta" and "sigma" from priors and then observation
-    variables "x" and "y". We can then use concatonate in the following way
+    variables "x" and "y". We can then use concatenate in the following way
 
     >>> adapter = (
         bf.Adapter()
