@@ -8,23 +8,41 @@ def flow_matching():
     from bayesflow.networks import FlowMatching
 
     return FlowMatching(
-        subnet=MLP([64, 64]),
+        subnet=MLP([8, 8]),
         integrate_kwargs={"method": "rk45", "steps": 100},
     )
 
 
 @pytest.fixture()
-def coupling_flow():
+def consistency_model():
+    from bayesflow.networks import ConsistencyModel
+
+    return ConsistencyModel(total_steps=100, subnet=MLP([8, 8]))
+
+
+@pytest.fixture()
+def affine_coupling_flow():
     from bayesflow.networks import CouplingFlow
 
-    return CouplingFlow(depth=2, subnet="mlp", subnet_kwargs=dict(widths=[64, 64]))
+    return CouplingFlow(
+        depth=2, subnet="mlp", subnet_kwargs=dict(widths=[8, 8]), transform="affine", transform_kwargs=dict(clamp=1.8)
+    )
+
+
+@pytest.fixture()
+def spline_coupling_flow():
+    from bayesflow.networks import CouplingFlow
+
+    return CouplingFlow(
+        depth=2, subnet="mlp", subnet_kwargs=dict(widths=[8, 8]), transform="spline", transform_kwargs=dict(bins=8)
+    )
 
 
 @pytest.fixture()
 def free_form_flow():
     from bayesflow.experimental import FreeFormFlow
 
-    return FreeFormFlow(encoder_subnet=MLP([64, 64]), decoder_subnet=MLP([64, 64]))
+    return FreeFormFlow(encoder_subnet=MLP([16, 16]), decoder_subnet=MLP([16, 16]))
 
 
 @pytest.fixture()
@@ -47,7 +65,7 @@ def typical_point_inference_network_subnet():
     from bayesflow.networks import PointInferenceNetwork
     from bayesflow.scores import MeanScore, MedianScore, QuantileScore, MultivariateNormalScore
 
-    subnet = MLP([64, 64])
+    subnet = MLP([16, 8])
 
     return PointInferenceNetwork(
         scores=dict(
@@ -61,7 +79,14 @@ def typical_point_inference_network_subnet():
 
 
 @pytest.fixture(
-    params=["typical_point_inference_network", "coupling_flow", "flow_matching", "free_form_flow"], scope="function"
+    params=[
+        "typical_point_inference_network",
+        "affine_coupling_flow",
+        "spline_coupling_flow",
+        "flow_matching",
+        "free_form_flow",
+    ],
+    scope="function",
 )
 def inference_network(request):
     return request.getfixturevalue(request.param)
@@ -80,7 +105,9 @@ def inference_network_subnet(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture(params=["coupling_flow", "flow_matching", "free_form_flow"], scope="function")
+@pytest.fixture(
+    params=["affine_coupling_flow", "spline_coupling_flow", "flow_matching", "free_form_flow"], scope="function"
+)
 def generative_inference_network(request):
     return request.getfixturevalue(request.param)
 

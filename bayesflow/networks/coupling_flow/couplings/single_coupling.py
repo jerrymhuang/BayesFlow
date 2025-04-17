@@ -29,16 +29,20 @@ class SingleCoupling(InvertibleLayer):
         self,
         subnet: str | type = "mlp",
         transform: str = "affine",
+        subnet_kwargs: dict[str, any] = None,
+        transform_kwargs: dict[str, any] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
-        subnet_kwargs = kwargs.get("subnet_kwargs", {})
+        subnet_kwargs = subnet_kwargs or {}
+        transform_kwargs = transform_kwargs or {}
+
         if subnet == "mlp":
             subnet_kwargs = SingleCoupling.MLP_DEFAULT_CONFIG | subnet_kwargs
 
         self.subnet = find_network(subnet, **subnet_kwargs)
-        self.transform = find_transform(transform, **kwargs.get("transform_kwargs", {}))
+        self.transform = find_transform(transform, **transform_kwargs)
 
         self.output_projector = keras.layers.Dense(
             units=None, kernel_initializer="zeros", bias_initializer="zeros", name="output_projector"

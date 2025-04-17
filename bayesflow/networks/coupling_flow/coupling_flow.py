@@ -46,6 +46,8 @@ class CouplingFlow(InferenceNetwork):
         permutation: str | None = "random",
         use_actnorm: bool = True,
         base_distribution: str = "normal",
+        subnet_kwargs: dict[str, any] = None,
+        transform_kwargs: dict[str, any] = None,
         **kwargs,
     ):
         """
@@ -82,9 +84,15 @@ class CouplingFlow(InferenceNetwork):
         base_distribution : str, optional
             The base probability distribution from which samples are drawn, such as
             "normal". Default is "normal".
+        subnet_kwargs : dict of str to any, optional
+            Keyword arguments forwarded to the subnet (e.g., MLP) constructor within
+            each coupling layer, such as hidden sizes or activation choices.
+        transform_kwargs : dict of str to any, optional
+            Keyword arguments forwarded to the affine or spline transforms
+            (e.g., bins for splines)
         **kwargs
-            Additional keyword arguments passed to the ActNorm, permutation, and
-            coupling layers for customization.
+            Additional keyword arguments passed to `InvertibleLayer`.
+
         """
         super().__init__(base_distribution=base_distribution, **kwargs)
 
@@ -97,12 +105,18 @@ class CouplingFlow(InferenceNetwork):
         self.invertible_layers = []
         for i in range(depth):
             if use_actnorm:
-                self.invertible_layers.append(ActNorm(**kwargs.get("actnorm_kwargs", {})))
+                self.invertible_layers.append(ActNorm())
 
-            if (p := find_permutation(permutation, **kwargs.get("permutation_kwargs", {}))) is not None:
+            if (p := find_permutation(permutation)) is not None:
                 self.invertible_layers.append(p)
 
-            self.invertible_layers.append(DualCoupling(subnet, transform, **kwargs.get("coupling_kwargs", {})))
+            self.invertible_layers.append(
+                DualCoupling(subnet, transform, subnet_kwargs=subnet_kwargs, transform_kwargs=transform_kwargs)
+            )
+
+        # We only need to do this from coupling flows, since we do not serialize invertible layers
+        self.subnet_kwargs = subnet_kwargs
+        self.transform_kwargs = transform_kwargs
 
     # noinspection PyMethodOverriding
     def build(self, xz_shape, conditions_shape=None):
@@ -126,6 +140,8 @@ class CouplingFlow(InferenceNetwork):
             "permutation": self.permutation,
             "use_actnorm": self.use_actnorm,
             "base_distribution": self.base_distribution,
+            "subnet_kwargs": self.subnet_kwargs,
+            "transform_kwargs": self.transform_kwargs,
         }
 
         return base_config | serialize(config)

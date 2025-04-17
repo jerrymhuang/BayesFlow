@@ -34,7 +34,7 @@ class ActNorm(InvertibleLayer):
         self.scale = self.add_weight(shape=(xz_shape[-1],), initializer="ones", name="scale")
         self.bias = self.add_weight(shape=(xz_shape[-1],), initializer="zeros", name="bias")
 
-    def call(self, xz: Tensor, inverse: bool = False, **kwargs):
+    def call(self, xz: Tensor, inverse: bool = False, **kwargs) -> (Tensor, Tensor):
         if inverse:
             return self._inverse(xz, **kwargs)
         return self._forward(xz, **kwargs)
