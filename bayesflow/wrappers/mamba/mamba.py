@@ -83,7 +83,7 @@ class Mamba(SummaryNetwork):
         self.dropout = keras.layers.Dropout(dropout)
         self.summary_stats = keras.layers.Dense(summary_dim)
 
-    def call(self, time_series: Tensor, training: bool = True, **kwargs) -> Tensor:
+    def call(self, time_series: Tensor, training: bool = False, **kwargs) -> Tensor:
         """
         Apply a sequence of Mamba blocks, followed by pooling, dropout, and summary statistics.
 
@@ -93,8 +93,8 @@ class Mamba(SummaryNetwork):
             Input tensor representing the time series data, typically of shape
             (batch_size, sequence_length, feature_dim).
         training : bool, optional
-            Whether the model is in training mode (default is True). Affects behavior of
-            layers like dropout.
+            Whether the model is in training mode (default is False). Affects the behavior of
+            the inner dropout and norm layers.
         **kwargs : dict
             Additional keyword arguments (not used in this method).
 

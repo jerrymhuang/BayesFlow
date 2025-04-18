@@ -4,7 +4,6 @@ from keras.saving import register_keras_serializable as serializable
 import math
 import numpy as np
 
-
 from bayesflow.types import Shape, Tensor
 from bayesflow.utils import expand_tile
 from bayesflow.utils.decorators import allow_batch_size
