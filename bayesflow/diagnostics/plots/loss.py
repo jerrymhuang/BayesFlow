@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 
 import keras.src.callbacks
 
-from matplotlib.colors import Normalize
-from ...utils.plot_utils import make_figure, add_titles_and_labels, gradient_line, gradient_legend
+from ...utils.plot_utils import make_figure, add_titles_and_labels, gradient_line
 
 
 def loss(
@@ -16,12 +15,11 @@ def loss(
     train_key: str = "loss",
     val_key: str = "val_loss",
     moving_average: bool = True,
-    per_training_step: bool = False,
     moving_average_span: int = 10,
     figsize: Sequence[float] = None,
     train_color: str = "#132a70",
     val_color: str = None,
-    val_colormap: str = 'viridis',
+    val_colormap: str = "viridis",
     lw_train: float = 2.0,
     lw_val: float = 3.0,
     val_marker_type: str = "o",
@@ -45,9 +43,7 @@ def loss(
         The validation loss key to look for in the history
     moving_average     : bool, optional, default: False
         A flag for adding an exponential moving average line of the train_losses.
-    per_training_step : bool, optional, default: False
-        A flag for making loss trajectory detailed (to training steps) rather than per epoch.
-    ma_window_fraction : int, optional, default: 0.01
+    moving_average_span : int, optional, default: 0.01
         Window size for the moving average as a fraction of total
         training steps.
     figsize            : tuple or None, optional, default: None
@@ -55,12 +51,20 @@ def loss(
         Inferred if ``None``
     train_color        : str, optional, default: '#8f2727'
         The color for the train loss trajectory
-    val_color          : str, optional, default: black
+    val_color          : str, optional, default: None
+        The color for the optional validation loss trajectory
+    val_colormap       : str, optional, default: "viridis"
         The color for the optional validation loss trajectory
     lw_train           : int, optional, default: 2
         The linewidth for the training loss curve
     lw_val             : int, optional, default: 3
         The linewidth for the validation loss curve
+    val_marker_type     : str, optional, default: o
+        The marker type for the validation loss curve
+    val_marker_size     : int, optional, default: 34
+        The marker size for the validation loss curve
+    grid_alpha          : float, optional, default: 0.2
+        The transparency of the background grid
     legend_fontsize    : int, optional, default: 14
         The font size of the legend text
     label_fontsize     : int, optional, default: 14
@@ -111,41 +115,32 @@ def loss(
 
         # Plot optional val curve
         if val_losses is not None:
-                if val_color is not None:
-                    ax.plot(
-                        val_step_index,
-                        val_losses.iloc[:, 0],
-                        linestyle="--",
-                        marker=val_marker_type,
-                        color=val_color,
-                        lw=lw_val,
-                        label="Validation",
-                    )
-                else:
-                    # Create line segments between each epoch
-                    points = np.array([val_step_index, val_losses.iloc[:,0]]).T.reshape(-1, 1, 2)
-                    segments = np.concatenate([points[:-1], points[1:]], axis=1)
-
-                    # Normalize color based on loss values
-                    lc = gradient_line(
-                        val_step_index,
-                        val_losses.iloc[:,0],
-                        c=val_step_index,
-                        cmap=val_colormap,
-                        lw=lw_val,
-                        ax=ax
-                    )
-                    scatter = ax.scatter(
-                        val_step_index,
-                        val_losses.iloc[:,0],
-                        c=val_step_index,
-                        cmap=val_colormap,
-                        marker=val_marker_type,
-                        s=val_marker_size,
-                        zorder=10,
-                        edgecolors='none',
-                        label='Validation'
-                    )
+            if val_color is not None:
+                ax.plot(
+                    val_step_index,
+                    val_losses.iloc[:, 0],
+                    linestyle="--",
+                    marker=val_marker_type,
+                    color=val_color,
+                    lw=lw_val,
+                    label="Validation",
+                )
+            else:
+                # Make gradient lines
+                gradient_line(
+                    val_step_index, val_losses.iloc[:, 0], c=val_step_index, cmap=val_colormap, lw=lw_val, ax=ax
+                )
+                ax.scatter(
+                    val_step_index,
+                    val_losses.iloc[:, 0],
+                    c=val_step_index,
+                    cmap=val_colormap,
+                    marker=val_marker_type,
+                    s=val_marker_size,
+                    zorder=10,
+                    edgecolors="none",
+                    label="Validation",
+                )
 
         sns.despine(ax=ax)
         ax.grid(alpha=grid_alpha)
@@ -160,7 +155,7 @@ def loss(
         num_row=num_row,
         num_col=1,
         title=["Loss Trajectory"],
-        xlabel="Training step #" if per_training_step else "Training epoch #",
+        xlabel="Training epoch #",
         ylabel="Value",
         title_fontsize=title_fontsize,
         label_fontsize=label_fontsize,

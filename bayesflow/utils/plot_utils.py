@@ -267,7 +267,7 @@ def make_quadratic(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray):
     )
 
 
-def gradient_line(x, y, c=None, cmap='viridis', lw=2, ax=None):
+def gradient_line(x, y, c=None, cmap="viridis", lw=2, ax=None):
     """
     Plot a 1D line with color gradient determined by `c` (same shape as x and y).
     """
@@ -291,7 +291,7 @@ def gradient_line(x, y, c=None, cmap='viridis', lw=2, ax=None):
     return lc
 
 
-def gradient_legend(ax, label, cmap, norm, loc='upper right'):
+def gradient_legend(ax, label, cmap, norm, loc="upper right"):
     """
     Adds a single gradient swatch to the legend of the given Axes.
 
@@ -304,7 +304,8 @@ def gradient_legend(ax, label, cmap, norm, loc='upper right'):
     """
 
     # Custom dummy handle to represent the gradient
-    class _GradientSwatch(Rectangle): pass
+    class _GradientSwatch(Rectangle):
+        pass
 
     # Custom legend handler that draws a horizontal gradient
     class _HandlerGradient(HandlerPatch):
@@ -312,11 +313,11 @@ def gradient_legend(ax, label, cmap, norm, loc='upper right'):
             gradient = np.linspace(0, 1, 256).reshape(1, -1)
             im = ax.imshow(
                 gradient,
-                aspect='auto',
+                aspect="auto",
                 extent=[xdescent, xdescent + width, ydescent, ydescent + height],
                 transform=trans,
                 cmap=cmap,
-                norm=norm
+                norm=norm,
             )
             return [im]
 
@@ -325,9 +326,4 @@ def gradient_legend(ax, label, cmap, norm, loc='upper right'):
     handles.append(_GradientSwatch((0, 0), 1, 1))
     labels.append(label)
 
-    ax.legend(
-        handles=handles,
-        labels=labels,
-        loc=loc,
-        handler_map={_GradientSwatch: _HandlerGradient()}
-    )
+    ax.legend(handles=handles, labels=labels, loc=loc, handler_map={_GradientSwatch: _HandlerGradient()})
