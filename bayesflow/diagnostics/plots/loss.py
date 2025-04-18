@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 import keras.src.callbacks
 
-from ...utils.plot_utils import make_figure, add_titles_and_labels, gradient_line
+from ...utils.plot_utils import make_figure, add_titles_and_labels, add_gradient_plot
 
 
 def loss(
@@ -15,14 +15,15 @@ def loss(
     train_key: str = "loss",
     val_key: str = "val_loss",
     moving_average: bool = True,
-    moving_average_span: int = 10,
+    moving_average_alpha: float = 0.8,
     figsize: Sequence[float] = None,
     train_color: str = "#132a70",
     val_color: str = None,
     val_colormap: str = "viridis",
     lw_train: float = 2.0,
     lw_val: float = 3.0,
-    val_marker_type: str = "o",
+    marker: bool = True,
+    val_marker_type: str = ".",
     val_marker_size: int = 34,
     grid_alpha: float = 0.2,
     legend_fontsize: int = 14,
@@ -43,9 +44,8 @@ def loss(
         The validation loss key to look for in the history
     moving_average     : bool, optional, default: False
         A flag for adding an exponential moving average line of the train_losses.
-    moving_average_span : int, optional, default: 0.01
-        Window size for the moving average as a fraction of total
-        training steps.
+    moving_average_alpha : int, optional, default: 0.8
+        Smoothing factor for the moving average.
     figsize            : tuple or None, optional, default: None
         The figure size passed to the ``matplotlib`` constructor.
         Inferred if ``None``
@@ -54,11 +54,13 @@ def loss(
     val_color          : str, optional, default: None
         The color for the optional validation loss trajectory
     val_colormap       : str, optional, default: "viridis"
-        The color for the optional validation loss trajectory
+        The colormap for the optional validation loss trajectory
     lw_train           : int, optional, default: 2
         The linewidth for the training loss curve
     lw_val             : int, optional, default: 3
         The linewidth for the validation loss curve
+    marker  : bool, optional, default: False
+        A flag for whether marker should be added in the validation loss trajectory
     val_marker_type     : str, optional, default: o
         The marker type for the validation loss curve
     val_marker_size     : int, optional, default: 34
@@ -108,10 +110,10 @@ def loss(
     # Loop through loss entries and populate plot
     for i, ax in enumerate(axes.flat):
         # Plot train curve
-        ax.plot(train_step_index, train_losses.iloc[:, 0], color=train_color, lw=lw_train, alpha=0.2, label="Training")
+        ax.plot(train_step_index, train_losses.iloc[:, 0], color=train_color, lw=lw_train, alpha=0.05, label="Training")
         if moving_average:
-            smoothed_loss = train_losses.iloc[:, 0].ewm(span=moving_average_span, adjust=True).mean()
-            ax.plot(train_step_index, smoothed_loss, color="grey", lw=lw_train, label="Training (Moving Average)")
+            smoothed_train_loss = train_losses.iloc[:, 0].ewm(alpha=moving_average_alpha, adjust=True).mean()
+            ax.plot(train_step_index, smoothed_train_loss, color="grey", lw=lw_train, label="Training (Moving Average)")
 
         # Plot optional val curve
         if val_losses is not None:
@@ -120,27 +122,49 @@ def loss(
                     val_step_index,
                     val_losses.iloc[:, 0],
                     linestyle="--",
-                    marker=val_marker_type,
+                    marker=val_marker_type if marker else None,
                     color=val_color,
                     lw=lw_val,
+                    alpha=0.2,
                     label="Validation",
                 )
+                if moving_average:
+                    smoothed_val_loss = val_losses.iloc[:, 0].ewm(alpha=moving_average_alpha, adjust=True).mean()
+                    ax.plot(
+                        val_step_index,
+                        smoothed_val_loss,
+                        color=val_color,
+                        lw=lw_val,
+                        label="Validation (Moving Average)",
+                    )
             else:
                 # Make gradient lines
-                gradient_line(
-                    val_step_index, val_losses.iloc[:, 0], c=val_step_index, cmap=val_colormap, lw=lw_val, ax=ax
-                )
-                ax.scatter(
+                add_gradient_plot(
                     val_step_index,
                     val_losses.iloc[:, 0],
-                    c=val_step_index,
-                    cmap=val_colormap,
-                    marker=val_marker_type,
-                    s=val_marker_size,
-                    zorder=10,
-                    edgecolors="none",
+                    ax,
+                    val_colormap,
+                    lw_val,
+                    marker,
+                    val_marker_type,
+                    val_marker_size,
+                    alpha=0.05,
                     label="Validation",
                 )
+                if moving_average:
+                    smoothed_val_loss = val_losses.iloc[:, 0].ewm(alpha=moving_average_alpha, adjust=True).mean()
+                    add_gradient_plot(
+                        val_step_index,
+                        smoothed_val_loss,
+                        ax,
+                        val_colormap,
+                        lw_val,
+                        marker,
+                        val_marker_type,
+                        val_marker_size,
+                        alpha=1,
+                        label="Validation (Moving Average)",
+                    )
 
         sns.despine(ax=ax)
         ax.grid(alpha=grid_alpha)
