@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -14,8 +14,7 @@ def loss(
     history: keras.callbacks.History,
     train_key: str = "loss",
     val_key: str = "val_loss",
-    moving_average: bool = True,
-    moving_average_alpha: float = 0.8,
+    smoothing_factor: float = 0.8,
     figsize: Sequence[float] = None,
     train_color: str = "#132a70",
     val_color: str = None,
