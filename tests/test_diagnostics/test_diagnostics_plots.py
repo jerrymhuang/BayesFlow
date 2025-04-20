@@ -6,6 +6,15 @@ def num_variables(x: dict):
     return sum(arr.shape[-1] for arr in x.values())
 
 
+def test_backend():
+    import matplotlib.pyplot as plt
+
+    # if the local testing backend is not Agg
+    # then you may run into issues once you run workflow tests
+    # on GitHub, since these use the Agg backend
+    assert plt.get_backend() == "Agg"
+
+
 def test_calibration_ecdf(random_estimates, random_targets, var_names):
     # basic functionality: automatic variable names
     out = bf.diagnostics.plots.calibration_ecdf(random_estimates, random_targets)
