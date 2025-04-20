@@ -120,6 +120,13 @@ def time_series_network(summary_dim):
 
 
 @pytest.fixture(scope="function")
+def time_series_transformer(summary_dim):
+    from bayesflow.networks import TimeSeriesTransformer
+
+    return TimeSeriesTransformer(summary_dim=summary_dim)
+
+
+@pytest.fixture(scope="function")
 def set_transformer(summary_dim):
     from bayesflow.networks import SetTransformer
 
@@ -133,7 +140,9 @@ def deep_set(summary_dim):
     return DeepSet(summary_dim=summary_dim)
 
 
-@pytest.fixture(params=[None, "time_series_network", "set_transformer", "deep_set"], scope="function")
+@pytest.fixture(
+    params=[None, "time_series_network", "time_series_transformer", "set_transformer", "deep_set"], scope="function"
+)
 def summary_network(request, summary_dim):
     if request.param is None:
         return None
