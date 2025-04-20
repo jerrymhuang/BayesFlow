@@ -4,12 +4,6 @@ import pytest
 from bayesflow.utils.numpy_utils import softmax
 
 
-def pytest_runtest_teardown(item, nextitem):
-    import matplotlib.pyplot as plt
-
-    plt.close("all")
-
-
 @pytest.fixture()
 def var_names():
     return [r"$\beta_0$", r"$\beta_1$", r"$\sigma$"]
