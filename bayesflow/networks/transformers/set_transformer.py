@@ -86,7 +86,7 @@ class SetTransformer(SummaryNetwork):
         num_attention_layers = len(embed_dims)
 
         # Construct a series of set-attention blocks
-        self.attention_blocks = keras.Sequential(name="attention_blocks")
+        self.attention_blocks = keras.Sequential()
 
         global_attention_settings = dict(
             dropout=dropout,
@@ -123,10 +123,8 @@ class SetTransformer(SummaryNetwork):
             seed_dim=seed_dim,
             num_seeds=num_seeds,
         )
-        self.pooling_by_attention = PoolingByMultiHeadAttention(
-            **(global_attention_settings | pooling_settings), name="pma"
-        )
-        self.output_projector = keras.layers.Dense(summary_dim, name="output_projector")
+        self.pooling_by_attention = PoolingByMultiHeadAttention(**(global_attention_settings | pooling_settings))
+        self.output_projector = keras.layers.Dense(summary_dim)
 
         self.summary_dim = summary_dim
 
