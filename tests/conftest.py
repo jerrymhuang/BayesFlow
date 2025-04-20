@@ -1,6 +1,6 @@
-import logging
-
 import keras
+import logging
+import matplotlib
 import pytest
 
 BACKENDS = ["jax", "numpy", "tensorflow", "torch"]
@@ -16,6 +16,16 @@ def pytest_runtest_setup(item):
 
     if test_backends and backend not in test_backends:
         pytest.skip(f"Skipping backend '{backend}' for test {item}, which is registered for backends {test_backends}.")
+
+    # use a non-GUI plotting backend for tests
+    matplotlib.use("Agg")
+
+
+def pytest_runtest_teardown(item, nextitem):
+    import matplotlib.pyplot as plt
+
+    # close all plots at the end of each test
+    plt.close("all")
 
 
 def pytest_make_parametrize_id(config, val, argname):
