@@ -46,10 +46,7 @@ def test_calibration_histogram(random_estimates, random_targets):
 
 
 def test_loss(history):
-    import matplotlib.pyplot as plt
-
     out = bf.diagnostics.loss(history)
-    plt.show()
     assert len(out.axes) == 1
     assert out.axes[0].title._text == "Loss Trajectory"
 
