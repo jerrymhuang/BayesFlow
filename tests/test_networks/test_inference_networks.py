@@ -98,7 +98,7 @@ def test_density_numerically(generative_inference_network, random_samples, rando
     numerical_output, numerical_jacobian = jacobian(f, random_samples, return_output=True)
 
     # output should be identical, otherwise this test does not work (e.g. for stochastic networks)
-    assert keras.ops.all(keras.ops.isclose(output, numerical_output))
+    assert_allclose(output, numerical_output)
 
     log_prob = generative_inference_network.base_distribution.log_prob(output)
 
