@@ -27,8 +27,8 @@ def test_shapes():
 
 
 def test_transport_cost_improves():
-    x = keras.random.normal((32, 8), seed=0)
-    y = keras.random.normal((32, 8), seed=1)
+    x = keras.random.normal((1024, 2), seed=0)
+    y = keras.random.normal((1024, 2), seed=1)
 
     before_cost = keras.ops.sum(keras.ops.norm(x - y, axis=-1))
 
@@ -40,14 +40,26 @@ def test_transport_cost_improves():
 
 
 def test_assignment_is_optimal():
-    x = keras.ops.stack([keras.ops.linspace(-1, 1, 10), keras.ops.linspace(-1, 1, 10)])
-    y = keras.ops.copy(x)
+    x = keras.ops.convert_to_tensor(
+        [
+            [-1, 2],
+            [-1, 1],
+            [-1, 0],
+            [-1, -1],
+            [-1, -2],
+        ]
+    )
+    optimal_y = keras.ops.convert_to_tensor(
+        [
+            [1, 2],
+            [1, 1],
+            [1, 0],
+            [1, -1],
+            [1, -2],
+        ]
+    )
+    y = keras.random.shuffle(optimal_y, axis=0, seed=0)
 
-    # we could shuffle x and y, but flipping is a more reliable permutation
-    y = keras.ops.flip(y, axis=0)
+    x, y = optimal_transport(x, y, regularization=0.1, seed=0, max_steps=None, scale_regularization=False)
 
-    x, y = optimal_transport(x, y, regularization=1e-3, seed=0, max_steps=1000)
-
-    cost = keras.ops.sum(keras.ops.norm(x - y, axis=-1))
-
-    assert_allclose(cost, 0.0)
+    assert_allclose(x, y)

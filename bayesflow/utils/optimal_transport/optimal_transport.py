@@ -1,7 +1,6 @@
 from bayesflow.types import Tensor
 
 from .hungarian import hungarian
-from .random import random
 from .sinkhorn import sinkhorn
 
 
@@ -39,7 +38,6 @@ def optimal_transport(
         "hungarian": hungarian,
         "sinkhorn": sinkhorn,
         "sinkhorn_knopp": sinkhorn,
-        "random": random,
     }
 
     method = method.lower()
