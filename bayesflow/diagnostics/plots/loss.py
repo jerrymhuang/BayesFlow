@@ -56,9 +56,9 @@ def loss(
     val_marker_size: float
         Marker size for the validation loss curve. Default is 5.
     lw_train           : int, optional, default: 2
-        The linewidth for the training loss curve
+        The line width for the training loss curve
     lw_val             : int, optional, default: 2
-        The linewidth for the validation loss curve
+        The line width for the validation loss curve
     grid_alpha          : float, optional, default: 0.2
         The transparency of the background grid
     legend_fontsize    : int, optional, default: 14
