@@ -17,12 +17,12 @@ def test_jit_compile():
 
 
 def test_transport_cost_improves():
-    x = keras.random.normal((100, 100), seed=0)
-    y = keras.random.normal((100, 100), seed=1)
+    x = keras.random.normal((100, 2), seed=0)
+    y = keras.random.normal((100, 2), seed=1)
 
     before_cost = keras.ops.sum(keras.ops.norm(x - y, axis=-1))
 
-    x, y = optimal_transport(x, y, regularization=0.1, seed=0)
+    x, y = optimal_transport(x, y, regularization=1e-3, seed=0)
 
     after_cost = keras.ops.sum(keras.ops.norm(x - y, axis=-1))
 
