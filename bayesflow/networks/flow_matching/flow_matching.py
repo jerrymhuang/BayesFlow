@@ -82,7 +82,7 @@ class FlowMatching(InferenceNetwork):
             The base probability distribution from which samples are drawn, such as "normal".
             Default is "normal".
         use_optimal_transport : bool, optional
-            Whether to apply optimal transport for improved training stability. Default is False.
+            Whether to apply optimal transport for improved training stability. Default is True.
         loss_fn : str, optional
             The loss function used for training, such as "mse". Default is "mse".
         integrate_kwargs : dict[str, any], optional
@@ -269,7 +269,7 @@ class FlowMatching(InferenceNetwork):
                 )
                 if conditions is not None:
                     # conditions must be resampled along with x1
-                    conditions = conditions[assignments]
+                    conditions = keras.ops.take(conditions, assignments, axis=0)
 
             t = keras.random.uniform((keras.ops.shape(x0)[0],), seed=self.seed_generator)
             t = expand_right_as(t, x0)

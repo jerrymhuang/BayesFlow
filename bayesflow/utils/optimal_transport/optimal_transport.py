@@ -1,3 +1,5 @@
+import keras
+
 from .log_sinkhorn import log_sinkhorn
 from .sinkhorn import sinkhorn
 
@@ -37,7 +39,7 @@ def optimal_transport(x1, x2, method="log_sinkhorn", return_assignments=False, *
         x1 and x2 in optimal transport permutation order.
     """
     assignments = methods[method.lower()](x1, x2, **kwargs)
-    x2 = x2[assignments]
+    x2 = keras.ops.take(x2, assignments, axis=0)
 
     if return_assignments:
         return x1, x2, assignments
