@@ -19,6 +19,7 @@ def sinkhorn(
     max_steps: int | None = 10_000,
     tolerance: float = 1e-6,
     numpy: bool = False,
+    scale_regularization: bool = True,
 ) -> (Tensor, Tensor):
     """
     Matches elements from x2 onto x1 using the Sinkhorn-Knopp algorithm.
@@ -57,6 +58,11 @@ def sinkhorn(
     :param tolerance: Absolute tolerance for convergence.
         Default: 1e-6
 
+    :param scale_regularization: Whether to scale the regularization parameter with the half-mean of the cost matrix.
+        This makes the value of the regularization parameter robust to the dimensionality and typical range of the
+        samples.
+        Default: True
+
     :return: Tensors of shapes (n, ...) and (m, ...)
         x1 and x2 in optimal transport permutation order.
     """
@@ -69,6 +75,7 @@ def sinkhorn(
         max_steps=max_steps,
         tolerance=tolerance,
         numpy=numpy,
+        scale_regularization=scale_regularization,
     )
 
     if numpy:
@@ -91,6 +98,7 @@ def sinkhorn_indices(
     max_steps: int | None = 10_000,
     tolerance: float = 1e-6,
     numpy: bool = False,
+    scale_regularization: bool = True,
 ) -> Tensor | np.ndarray:
     """
     Samples a set of optimal transport permutation indices using the Sinkhorn-Knopp algorithm.
@@ -118,6 +126,11 @@ def sinkhorn_indices(
 
     :param numpy: Whether to use numpy or keras backend.
 
+    :param scale_regularization: Whether to scale the regularization parameter with the half-mean of the cost matrix.
+        This makes the value of the regularization parameter robust to the dimensionality and typical range of the
+        samples.
+        Default: True
+
     :return: Tensor of shape (n,)
         Randomly sampled optimal permutation indices for the first distribution.
     """
@@ -129,6 +142,7 @@ def sinkhorn_indices(
         max_steps=max_steps,
         tolerance=tolerance,
         numpy=numpy,
+        scale_regularization=scale_regularization,
     )
 
     if numpy:
@@ -148,7 +162,14 @@ def sinkhorn_indices(
 
 
 def sinkhorn_plan(
-    x1: Tensor, x2: Tensor, cost: Tensor, regularization: float, max_steps: int, tolerance: float, numpy: bool = False
+    x1: Tensor,
+    x2: Tensor,
+    cost: str | Tensor,
+    regularization: float,
+    max_steps: int,
+    tolerance: float,
+    numpy: bool = False,
+    scale_regularization: bool = True,
 ) -> Tensor:
     """
     Computes the Sinkhorn-Knopp optimal transport plan.
@@ -172,19 +193,39 @@ def sinkhorn_plan(
     :param numpy: Whether to use numpy or keras backend.
         Default: False
 
+    :param scale_regularization: Whether to scale the regularization parameter with the half-mean of the cost matrix.
+        This makes the value of the regularization parameter robust to the dimensionality and typical range of the
+        samples.
+        Default: True
+
     :return: Tensor of shape (n, m)
         The transport probabilities.
     """
     cost = find_cost(cost, x1, x2, numpy=numpy)
 
     if numpy:
-        return sinkhorn_plan_numpy(cost=cost, regularization=regularization, max_steps=max_steps, tolerance=tolerance)
-    return sinkhorn_plan_keras(cost=cost, regularization=regularization, max_steps=max_steps, tolerance=tolerance)
+        return sinkhorn_plan_numpy(
+            cost=cost,
+            regularization=regularization,
+            max_steps=max_steps,
+            tolerance=tolerance,
+            scale_regularization=scale_regularization,
+        )
+    return sinkhorn_plan_keras(
+        cost=cost,
+        regularization=regularization,
+        max_steps=max_steps,
+        tolerance=tolerance,
+        scale_regularization=scale_regularization,
+    )
 
 
-def sinkhorn_plan_keras(cost: Tensor, regularization: float, max_steps: int, tolerance: float) -> Tensor:
-    # scale regularization with the half-mean of the cost
-    regularization = 0.5 * regularization * keras.ops.mean(cost)
+def sinkhorn_plan_keras(
+    cost: Tensor, regularization: float, max_steps: int, tolerance: float, scale_regularization: bool
+) -> Tensor:
+    if scale_regularization:
+        # scale regularization with the half-mean of the cost
+        regularization = 0.5 * regularization * keras.ops.mean(cost)
 
     # initialize the transport plan from a gaussian kernel
     plan = keras.ops.exp(-0.5 * cost / regularization)
@@ -227,14 +268,21 @@ def sinkhorn_plan_keras(cost: Tensor, regularization: float, max_steps: int, tol
     return plan
 
 
-def sinkhorn_plan_numpy(cost: np.ndarray, regularization: float, max_steps: int, tolerance: float) -> np.ndarray:
-    # scale regularization with the half-mean of the cost
-    regularization = 0.5 * regularization * np.mean(cost)
+def sinkhorn_plan_numpy(
+    cost: np.ndarray, regularization: float, max_steps: int, tolerance: float, scale_regularization: bool
+) -> np.ndarray:
+    if scale_regularization:
+        # scale regularization with the half-mean of the cost
+        regularization = 0.5 * regularization * np.mean(cost)
 
     # initialize the transport plan from a gaussian kernel
     plan = np.exp(-0.5 * cost / regularization)
 
-    for _ in range(max_steps):
+    step = 0
+    while True:
+        if step >= max_steps:
+            break
+
         # check convergence: the plan should be doubly stochastic
         marginals = np.sum(plan, axis=0), np.sum(plan, axis=1)
         deviations = np.abs(marginals[0] - 1.0), np.abs(marginals[1] - 1.0)
@@ -245,6 +293,8 @@ def sinkhorn_plan_numpy(cost: np.ndarray, regularization: float, max_steps: int,
         # Sinkhorn-Knopp: repeatedly normalize the transport plan along each dimension
         plan = softmax(plan, axis=0)
         plan = softmax(plan, axis=1)
+
+        step += 1
 
     marginals = np.sum(plan, axis=0)
     deviations = np.abs(marginals - 1.0)
