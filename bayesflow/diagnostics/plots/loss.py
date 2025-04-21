@@ -114,42 +114,43 @@ def loss(
                 label="Training (Moving Average)",
             )
         else:
-            # plot unsmoothed train loss
+            # Plot unsmoothed train loss
             ax.plot(
                 train_step_index, train_losses.iloc[:, 0], color=train_color, lw=lw_train, alpha=0.8, label="Training"
             )
 
-        # Plot optional val curve
-        if val_losses is not None:
-            if val_color is not None:
-                if smoothing_factor > 0:
-                    # plot unsmoothed val loss
-                    ax.plot(
-                        val_step_index, val_losses.iloc[:, 0], color=val_color, lw=lw_val, alpha=0.3, label="Validation"
-                    )
+        # Only plot if we actually have validation losses and a color assigned
+        if val_losses is not None and val_color is not None:
+            alpha_unsmoothed = 0.3 if smoothing_factor > 0 else 0.8
 
-                    # plot smoothed val loss
-                    smoothed_val_loss = val_losses.iloc[:, 0].ewm(alpha=1.0 - smoothing_factor, adjust=True).mean()
-                    ax.plot(
-                        val_step_index,
-                        smoothed_val_loss,
-                        color=val_color,
-                        lw=lw_val,
-                        alpha=0.8,
-                        label="Validation (Moving Average)",
-                    )
-                else:
-                    # plot unsmoothed val loss
-                    ax.plot(
-                        val_step_index, val_losses.iloc[:, 0], color=val_color, lw=lw_val, alpha=0.8, label="Validation"
-                    )
+            # Plot unsmoothed val loss
+            ax.plot(
+                val_step_index,
+                val_losses.iloc[:, 0],
+                color=val_color,
+                lw=lw_val,
+                alpha=alpha_unsmoothed,
+                label="Validation",
+            )
 
+            # if requested, plot a second, smoothed curve
+            if smoothing_factor > 0:
+                smoothed_val_loss = val_losses.iloc[:, 0].ewm(alpha=1.0 - smoothing_factor, adjust=True).mean()
+                ax.plot(
+                    val_step_index,
+                    smoothed_val_loss,
+                    color=val_color,
+                    lw=lw_val,
+                    alpha=0.8,
+                    label="Validation (Moving Average)",
+                )
+
+        # rest of the styling
         sns.despine(ax=ax)
         ax.grid(alpha=grid_alpha)
-
         ax.set_xlim(train_step_index[0], train_step_index[-1])
 
-        # Only add the legend if there are multiple curves
+        # legend only if there's at least one validation curve or smoothing was on
         if val_losses is not None or smoothing_factor > 0:
             ax.legend(fontsize=legend_fontsize)
 
