@@ -37,6 +37,8 @@ all = [
     "jupyter",
     "jupyterlab",
     "nbconvert",
+    "ipython",
+    "ipykernel",
     "pre-commit",
     "ruff",
     "tox",
@@ -72,6 +74,8 @@ docs = [
 ]
 test = [
     "nbconvert",
+    "ipython",
+    "ipykernel",
     "pytest",
     "pytest-cov",
     "pytest-rerunfailures",
