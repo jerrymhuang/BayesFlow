@@ -17,8 +17,6 @@ def run_notebook(path):
 
     try:
         result = kernel.preprocess(nb)
-    except Exception as e:
-        raise e
     finally:
         if cleanup_checkpoints and checkpoint_path.exists():
             # clean up if the directory was created by the test
