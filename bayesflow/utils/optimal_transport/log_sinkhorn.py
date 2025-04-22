@@ -27,9 +27,6 @@ def log_sinkhorn_plan(x1, x2, regularization: float = 1.0, rtol=1e-5, atol=1e-8,
 
     log_plan = cost / -(regularization * keras.ops.mean(cost) + 1e-16)
 
-    if is_symbolic_tensor(log_plan):
-        return log_plan
-
     def contains_nans(plan):
         return keras.ops.any(keras.ops.isnan(plan))
 
@@ -59,7 +56,7 @@ def log_sinkhorn_plan(x1, x2, regularization: float = 1.0, rtol=1e-5, atol=1e-8,
     def log_steps():
         msg = "Log-Sinkhorn-Knopp converged after {:d} steps."
 
-        logging.info(msg, steps)
+        logging.debug(msg, steps)
 
     def warn_convergence():
         marginals = keras.ops.logsumexp(log_plan, axis=0)
