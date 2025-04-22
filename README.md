@@ -14,6 +14,33 @@ It provides users and researchers with:
 BayesFlow (version 2+) is designed to be a flexible and efficient tool that enables rapid statistical inference
 fueled by continuous progress in generative AI and Bayesian inference.
 
+## Migrating from BayesFlow 1.x to BayesFlow 2.0+
+
+You are currently looking at BayesFlow 2.0+, which is a complete rewrite of the library.
+While it shares the same overall goals with the 1.x versions, the API is not compatible.
+You can find the most recent version of BayesFlow 1.x on the `stable-legacy` branch.
+The latest [BayesFlow 1.x documentation](https://bayesflow.org/stable-legacy/index.html) can be accessed by selecting the "stable-legacy" entry in the version picker of the documentation.
+
+> [!CAUTION]
+> You should not upgrade (yet) if one of the following applies:
+>
+> - You have an ongoing project that uses BayesFlow 1.x, and you do not want to allocate time for migrating to the new API.
+> - You require a feature that was not ported to BayesFlow 2.0+ yet. To our knowledge, this applies to:
+>   * Two-level/Hierarchical models: `TwoLevelGenerativeModel`, `TwoLevelPrior`.
+>   * Sensitivity analysis: functionality from the `bayesflow.sensitivity` module.
+>   * MCMC (discontinued): The `bayesflow.mcmc` module. We are considering other options to enable the use of BayesFlow in an MCMC setting.
+>   * Networks: `EvidentialNetwork`.
+>   * Model misspecification detection: MMD test in the summary space (see #384).
+> - You have already trained models in BayesFlow 1.x, that you do not want to re-train with the new version. Loading models from version 1.x in version 2.0+ is not supported.
+>
+> If you encounter any functionality that is missing and not listed here, please let us know by opening an issue.
+
+The new version brings many features, like multi-backend support via Keras3, and improved modularity and extensibility.
+We recommend to upgrade if none of the above conditions apply.
+Continue reading below for installation instructions and examples to get started.
+The [Moving from BayesFlow v1.1 to v2.0](examples/From_BayesFlow_1.1_to_2.0.ipynb) guide highlights how concepts and classes relate between the two versions.
+For additional information, please refer to the [FAQ](#faq) below.
+
 ## Conceptual Overview
 
 <div align="center">
