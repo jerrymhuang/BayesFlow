@@ -1,7 +1,6 @@
 import keras
 
 from .. import logging
-from ..tensor_utils import is_symbolic_tensor
 
 from .euclidean import euclidean
 
