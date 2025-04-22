@@ -8,6 +8,7 @@ def test_bayesian_experimental_design(examples_path):
     run_notebook(examples_path / "Bayesian_Experimental_Design.ipynb")
 
 
+@pytest.mark.skip(reason="Requires setting up Stan.")
 @pytest.mark.slow
 def test_from_abc_to_bayesflow(examples_path):
     run_notebook(examples_path / "From_ABC_to_BayesFlow.ipynb")
@@ -30,7 +31,7 @@ def test_one_sample_ttest(examples_path):
 
 @pytest.mark.slow
 def test_sir_posterior_estimation(examples_path):
-    run_notebook(examples_path / "SIR_Posterior_estimation.ipynb")
+    run_notebook(examples_path / "SIR_Posterior_Estimation.ipynb")
 
 
 @pytest.mark.slow
