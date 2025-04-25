@@ -260,5 +260,5 @@ examples
 api/bayesflow
 about
 Contributing <contributing>
-Developer docs <development/index>
+Developer Docs <development/index>
 ```
