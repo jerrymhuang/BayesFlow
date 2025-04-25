@@ -267,7 +267,7 @@ accessed by selecting the "stable-legacy" entry in the version picker of the doc
 You can also install the latest version of BayesFlow v1.x from PyPI using
 
 ```
-$ pip install "bayesflow<2.0"
+pip install "bayesflow<2.0"
 ```
 
 -------------
