@@ -35,7 +35,7 @@ class ModelComparisonApproximator(Approximator):
         The input of the summary network is `summary_variables`.
     """
 
-    SAMPLE_KEYS = ["summary_variables", "inference_conditions"]
+    SAMPLE_KEYS = ["summary_variables", "classifier_conditions"]
 
     def __init__(
         self,
