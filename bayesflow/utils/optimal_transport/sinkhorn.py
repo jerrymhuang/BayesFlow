@@ -104,7 +104,7 @@ def sinkhorn_plan(
     def log_steps():
         msg = "Sinkhorn-Knopp converged after {} steps."
 
-        logging.info(msg, max_steps)
+        logging.debug(msg, max_steps)
 
     def warn_convergence():
         msg = "Sinkhorn-Knopp did not converge after {}."
