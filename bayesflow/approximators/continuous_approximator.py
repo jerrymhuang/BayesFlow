@@ -32,6 +32,8 @@ class ContinuousApproximator(Approximator):
         Additional arguments passed to the :py:class:`bayesflow.approximators.Approximator` class.
     """
 
+    SAMPLE_KEYS = ["summary_variables", "inference_conditions"]
+
     def __init__(
         self,
         *,
@@ -51,6 +53,7 @@ class ContinuousApproximator(Approximator):
         inference_variables: Sequence[str],
         inference_conditions: Sequence[str] = None,
         summary_variables: Sequence[str] = None,
+        standardize: bool = True,
         sample_weight: str = None,
     ) -> Adapter:
         """Create an :py:class:`~bayesflow.adapters.Adapter` suited for the approximator.
@@ -63,9 +66,12 @@ class ContinuousApproximator(Approximator):
             Names of the inference conditions in the data
         summary_variables : Sequence of str, optional
             Names of the summary variables in the data
+        standardize : bool, optional
+            Decide whether to standardize all variables, default is True
         sample_weight : str, optional
             Name of the sample weights
         """
+
         adapter = Adapter()
         adapter.to_array()
         adapter.convert_dtype("float64", "float32")
@@ -82,7 +88,9 @@ class ContinuousApproximator(Approximator):
             adapter = adapter.rename(sample_weight, "sample_weight")
 
         adapter.keep(["inference_variables", "inference_conditions", "summary_variables", "sample_weight"])
-        adapter.standardize(exclude="sample_weight")
+
+        if standardize:
+            adapter.standardize(exclude="sample_weight")
 
         return adapter
 
@@ -334,12 +342,18 @@ class ContinuousApproximator(Approximator):
         dict[str, np.ndarray]
             Dictionary containing generated samples with the same keys as `conditions`.
         """
+
+        # Apply adapter transforms to raw simulated / real quantities
         conditions = self.adapter(conditions, strict=False, stage="inference", **kwargs)
-        # at inference time, inference_variables are estimated by the networks and thus ignored in conditions
-        conditions.pop("inference_variables", None)
+
+        # Ensure only keys relevant for sampling are present in the conditions dictionary
+        conditions = {k: v for k, v in conditions.items() if k in ContinuousApproximator.SAMPLE_KEYS}
+
         conditions = keras.tree.map_structure(keras.ops.convert_to_tensor, conditions)
         conditions = {"inference_variables": self._sample(num_samples=num_samples, **conditions, **kwargs)}
         conditions = keras.tree.map_structure(keras.ops.convert_to_numpy, conditions)
+
+        # Back-transform quantities and samples
         conditions = self.adapter(conditions, inverse=True, strict=False, **kwargs)
 
         if split:
