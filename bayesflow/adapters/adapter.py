@@ -25,6 +25,8 @@ from .transforms import (
     Standardize,
     ToArray,
     Transform,
+    RandomSubsample,
+    Take,
 )
 from .transforms.filter_transform import Predicate
 
@@ -665,6 +667,28 @@ class Adapter(MutableSequence[Transform]):
         self.transforms.append(transform)
         return self
 
+    def random_subsample(self, key: str, *, sample_size: int | float, axis: int = -1):
+        """
+        Append a :py:class:`~transforms.RandomSubsample` transform to the adapter.
+
+        Parameters
+        ----------
+        key : str or Sequence of str
+            The name of the variable to subsample.
+        sample_size : int or float
+            The number of samples to draw, or a fraction between 0 and 1 of the total number of samples to draw.
+        axis: int, optional
+            Which axis to draw samples over. The last axis is used by default.
+        """
+
+        if not isinstance(key, str):
+            raise TypeError("Can only subsample one batch entry at a time.")
+
+        transform = MapTransform({key: RandomSubsample(sample_size=sample_size, axis=axis)})
+
+        self.transforms.append(transform)
+        return self
+
     def rename(self, from_key: str, to_key: str):
         """Append a :py:class:`~transforms.Rename` transform to the adapter.
 
@@ -741,7 +765,7 @@ class Adapter(MutableSequence[Transform]):
             Names of variables to include in the transform.
         exclude : str or Sequence of str, optional
             Names of variables to exclude from the transform.
-        **kwargs : dict
+        **kwargs :
             Additional keyword arguments passed to the transform.
         """
         transform = FilterTransform(
@@ -750,6 +774,42 @@ class Adapter(MutableSequence[Transform]):
             include=include,
             exclude=exclude,
             **kwargs,
+        )
+        self.transforms.append(transform)
+        return self
+
+    def take(
+        self,
+        include: str | Sequence[str] = None,
+        *,
+        indices: Sequence[int],
+        axis: int = -1,
+        predicate: Predicate = None,
+        exclude: str | Sequence[str] = None,
+    ):
+        """
+        Append a :py:class:`~transforms.Take` transform to the adapter.
+
+        Parameters
+        ----------
+        include : str or Sequence of str, optional
+            Names of variables to include in the transform.
+        indices : Sequence of int
+            Which indices to take from the data.
+        axis : int, optional
+            Which axis to take from. The last axis is used by default.
+        predicate : Predicate, optional
+            Function that indicates which variables should be transformed.
+        exclude : str or Sequence of str, optional
+            Names of variables to exclude from the transform.
+        """
+        transform = FilterTransform(
+            transform_constructor=Take,
+            predicate=predicate,
+            include=include,
+            exclude=exclude,
+            indices=indices,
+            axis=axis,
         )
         self.transforms.append(transform)
         return self
