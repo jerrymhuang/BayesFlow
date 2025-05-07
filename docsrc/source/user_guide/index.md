@@ -14,4 +14,8 @@ generative_models.ipynb
 data_processing.ipynb
 summary_networks.ipynb
 inference_networks.ipynb
+approximators.ipynb
+workflows.ipynb
+diagnostics.ipynb
+saving_loading.ipynb
 ```
