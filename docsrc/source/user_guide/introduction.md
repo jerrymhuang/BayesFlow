@@ -1,5 +1,7 @@
 # Introduction
 
+*Disclaimer: This guide is in an early stage. We welcome contributions to the guide in form of issues and pull requests.*
+
 Welcome to the User Guide! This guide is still in a very early stage, but we plan to evolve it into a comprehensive guide to using BayesFlow.
 
 ## Why (and When) Do We Need Amortized Bayesian Inference (ABI)?
