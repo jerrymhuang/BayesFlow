@@ -1,8 +1,67 @@
 import keras
 import pytest
 
-from bayesflow.utils import find_inference_network, find_distribution, find_summary_network
+from bayesflow.utils import find_inference_network, find_distribution, find_network, find_summary_network
 from bayesflow.experimental.diffusion_model import find_noise_schedule
+
+# --- Tests for find__network.py ---
+
+
+class DummyNetwork:
+    def __init__(self, *a, **kw):
+        self.args = a
+        self.kwargs = kw
+
+
+@pytest.mark.parametrize(
+    "name,expected_class_path",
+    [
+        ("mlp", "bayesflow.networks.MLP"),
+    ],
+)
+def test_find_network_by_name(monkeypatch, name, expected_class_path):
+    # patch the expected class in bayesflow.networks
+    components = expected_class_path.split(".")
+    module_path = ".".join(components[:-1])
+    class_name = components[-1]
+
+    dummy_cls = DummyNetwork
+    monkeypatch.setattr(f"{module_path}.{class_name}", dummy_cls)
+
+    net = find_network(name, 1, key="val")
+    assert isinstance(net, DummyNetwork)
+    assert net.args == (1,)
+    assert net.kwargs == {"key": "val"}
+
+
+def test_find_network_by_type():
+    # patch the expected class in bayesflow.networks
+    net = find_network(DummyNetwork, 1, key="val")
+    assert isinstance(net, DummyNetwork)
+    assert net.args == (1,)
+    assert net.kwargs == {"key": "val"}
+
+
+def test_find_network_by_keras_layer():
+    layer = keras.layers.Dense(10)
+    result = find_network(layer)
+    assert result is layer
+
+
+def test_find_network_by_keras_model():
+    model = keras.models.Sequential()
+    result = find_network(model)
+    assert result is model
+
+
+def test_find_network_unknown_name():
+    with pytest.raises(ValueError):
+        find_network("unknown_network_name")
+
+
+def test_find_network_invalid_type():
+    with pytest.raises(TypeError):
+        find_network(12345)
 
 
 # --- Tests for find_inference_network.py ---
@@ -32,6 +91,14 @@ def test_find_inference_network_by_name(monkeypatch, name, expected_class_path):
     monkeypatch.setattr(f"{module_path}.{class_name}", dummy_cls)
 
     net = find_inference_network(name, 1, key="val")
+    assert isinstance(net, DummyInferenceNetwork)
+    assert net.args == (1,)
+    assert net.kwargs == {"key": "val"}
+
+
+def test_find_inference_network_by_type():
+    # patch the expected class in bayesflow.networks
+    net = find_inference_network(DummyInferenceNetwork, 1, key="val")
     assert isinstance(net, DummyInferenceNetwork)
     assert net.args == (1,)
     assert net.kwargs == {"key": "val"}
@@ -147,6 +214,14 @@ def test_find_summary_network_by_name(monkeypatch, name, expected_class_path):
     assert isinstance(net, DummySummaryNetwork)
     assert net.args == (22,)
     assert net.kwargs == {"flag": True}
+
+
+def test_find_summary_network_by_type():
+    # patch the expected class in bayesflow.networks
+    net = find_summary_network(DummySummaryNetwork, 1, key="val")
+    assert isinstance(net, DummySummaryNetwork)
+    assert net.args == (1,)
+    assert net.kwargs == {"key": "val"}
 
 
 def test_find_summary_network_by_keras_layer():
