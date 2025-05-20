@@ -789,7 +789,8 @@ class Adapter(MutableSequence[Transform]):
         keys : str or Sequence of str
             The names of the variables to squeeze.
         axis : int or tuple
-            The axis to squeeze.
+            The axis to squeeze. As the number of batch dimensions might change, we advise using negative
+            numbers (i.e., indexing from the end instead of the start).
         """
         if isinstance(keys, str):
             keys = [keys]

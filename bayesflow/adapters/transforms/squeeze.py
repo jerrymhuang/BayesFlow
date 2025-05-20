@@ -13,7 +13,8 @@ class Squeeze(ElementwiseTransform):
     Parameters
     ----------
     axis : int or tuple
-        The axis to squeeze.
+        The axis to squeeze. As the number of batch dimensions might change, we advise using negative
+        numbers (i.e., indexing from the end instead of the start).
 
     Examples
     --------
@@ -21,7 +22,7 @@ class Squeeze(ElementwiseTransform):
 
     >>> a = np.array([[1], [2], [3]])
 
-    >>> sq = bf.adapters.transforms.Squeeze(axis=1)
+    >>> sq = bf.adapters.transforms.Squeeze(axis=-1)
     >>> sq.forward(a).shape
     (3,)
 
