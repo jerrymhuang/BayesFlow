@@ -29,6 +29,7 @@ from .transform import Transform
 from .random_subsample import RandomSubsample
 from .take import Take
 from .ungroup import Ungroup
+from .nan_to_num import NanToNum
 
 from ...utils._docs import _add_imports_to_all
 

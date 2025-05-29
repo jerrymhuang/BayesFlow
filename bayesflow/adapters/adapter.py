@@ -31,6 +31,7 @@ from .transforms import (
     Ungroup,
     RandomSubsample,
     Take,
+    NanToNum,
 )
 from .transforms.filter_transform import Predicate
 
@@ -955,4 +956,35 @@ class Adapter(MutableSequence[Transform]):
 
         transform = ToDict()
         self.transforms.append(transform)
+        return self
+
+    def nan_to_num(
+        self,
+        keys: str | Sequence[str],
+        default_value: float = 0.0,
+        return_mask: bool = False,
+        mask_prefix: str = "mask",
+    ):
+        """
+        Append :py:class:`~bf.adapters.transforms.NanToNum` transform to the adapter.
+
+        Parameters
+        ----------
+        keys : str or sequence of str
+            The names of the variables to clean / mask.
+        default_value : float
+            Value to substitute wherever data is NaN. Defaults to 0.0.
+        return_mask : bool
+            If True, encode a binary missingness mask alongside the data. Defaults to False.
+        mask_prefix : str
+            Prefix for the mask key in the output dictionary. Defaults to 'mask_'. If the mask key already exists,
+            a ValueError is raised to avoid overwriting existing masks.
+        """
+        if isinstance(keys, str):
+            keys = [keys]
+
+        for key in keys:
+            self.transforms.append(
+                NanToNum(key=key, default_value=default_value, return_mask=return_mask, mask_prefix=mask_prefix)
+            )
         return self
