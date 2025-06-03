@@ -37,7 +37,7 @@ class FreeFormFlow(InferenceNetwork):
         "activation": "mish",
         "kernel_initializer": "he_normal",
         "residual": True,
-        "dropout": 0.05,
+        "dropout": 0.0,
         "spectral_normalization": False,
     }
 
@@ -46,7 +46,7 @@ class FreeFormFlow(InferenceNetwork):
         "activation": "mish",
         "kernel_initializer": "he_normal",
         "residual": True,
-        "dropout": 0.05,
+        "dropout": 0.0,
         "spectral_normalization": False,
     }
 
