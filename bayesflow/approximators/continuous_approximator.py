@@ -382,18 +382,18 @@ class ContinuousApproximator(Approximator):
             if inference_conditions is None:
                 inference_conditions = summary_outputs
             else:
-                inference_conditions = keras.ops.concatenate([inference_conditions, summary_outputs], axis=1)
+                inference_conditions = keras.ops.concatenate([inference_conditions, summary_outputs], axis=-1)
 
         if inference_conditions is not None:
-            # conditions must always have shape (batch_size, dims)
+            # conditions must always have shape (batch_size, ..., dims)
             batch_size = keras.ops.shape(inference_conditions)[0]
             inference_conditions = keras.ops.expand_dims(inference_conditions, axis=1)
             inference_conditions = keras.ops.broadcast_to(
                 inference_conditions, (batch_size, num_samples, *keras.ops.shape(inference_conditions)[2:])
             )
-            batch_shape = (batch_size, num_samples)
+            batch_shape = keras.ops.shape(inference_conditions)[:-1]
         else:
-            batch_shape = (num_samples,)
+            batch_shape = keras.ops.shape(inference_conditions)[1:-1]
 
         return self.inference_network.sample(
             batch_shape,
