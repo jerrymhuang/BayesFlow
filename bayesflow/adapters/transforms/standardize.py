@@ -75,7 +75,7 @@ class Standardize(ElementwiseTransform):
                 "Dynamic standardization is deprecated and will be removed in later versions."
                 "Instead, use the standardize argument of the approximator / workflow instance or provide "
                 "fixed mean and std arguments. You may incur some redundant computations if you keep this transform.",
-                DeprecationWarning,
+                FutureWarning,
             )
 
         self.mean = mean

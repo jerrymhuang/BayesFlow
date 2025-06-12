@@ -383,7 +383,8 @@ class ModelComparisonApproximator(Approximator):
         if logits is not None:
             logging.warning(
                 "Using argument `logits` is deprecated and will be removed in future versions. "
-                "Please, use `probs` instead."
+                "Please, use `probs` instead.",
+                FutureWarning,
             )
             probs = not logits
 
