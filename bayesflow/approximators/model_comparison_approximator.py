@@ -96,7 +96,7 @@ class ModelComparisonApproximator(Approximator):
             self.standardize_layers = {var: Standardization(trainable=False) for var in self.standardize}
 
         # Build all standardization layers
-        for var, layer in getattr(self, "standardize_layers", {}).items():
+        for var, layer in self.standardize_layers.items():
             layer.build(data_shapes[var])
 
         self.built = True

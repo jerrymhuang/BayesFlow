@@ -98,8 +98,8 @@ class ContinuousApproximator(Approximator):
             ]
             self.standardize_layers = {var: Standardization(trainable=False) for var in self.standardize}
 
-        # Build all standardization layers, if present
-        for var, layer in getattr(self, "standardize_layers", {}).items():
+        # Build all standardization layers
+        for var, layer in self.standardize_layers.items():
             layer.build(data_shapes[var])
 
         self.built = True
