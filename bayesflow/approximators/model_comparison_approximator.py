@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 
 import keras
 import numpy as np
+import warnings
 
 from bayesflow.adapters import Adapter
 from bayesflow.datasets import OnlineDataset
@@ -407,7 +408,7 @@ class ModelComparisonApproximator(Approximator):
 
         return keras.ops.convert_to_numpy(output)
 
-    def summaries(self, data: Mapping[str, np.ndarray], **kwargs) -> np.ndarray:
+    def summarize(self, data: Mapping[str, np.ndarray], **kwargs) -> np.ndarray:
         """
         Computes the learned summary statistics of given summary variables.
 
@@ -437,6 +438,14 @@ class ModelComparisonApproximator(Approximator):
         summaries = keras.ops.convert_to_numpy(summaries)
 
         return summaries
+
+    def summaries(self, data: Mapping[str, np.ndarray], **kwargs) -> np.ndarray:
+        """
+        .. deprecated:: 2.0.4
+            `summaries` will be removed in version 2.0.5, it was renamed to `summarize` which should be used instead.
+        """
+        warnings.warn("`summaries` was renamed to `summarize` and will be removed in version 2.0.5.", FutureWarning)
+        return self.summarize(data=data, **kwargs)
 
     def _compute_logits(self, classifier_conditions: Tensor) -> Tensor:
         """Helper to compute projected logits from the classifier network."""
