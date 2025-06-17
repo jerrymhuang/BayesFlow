@@ -448,7 +448,7 @@ class ContinuousApproximator(Approximator):
         conditions = self._prepare_data(conditions, **kwargs)
 
         # Remove any superfluous keys, just retain actual conditions
-        conditions = {k: v for k, v in conditions.items() if k in ContinuousApproximator.CONDITION_KEYS}
+        conditions = {k: v for k, v in conditions.items() if k in self.CONDITION_KEYS}
 
         # Sample and undo optional standardization
         samples = self._sample(num_samples=num_samples, **conditions, **kwargs)
@@ -485,7 +485,7 @@ class ContinuousApproximator(Approximator):
             ldj_inference = None
 
         # Standardize conditions
-        for key in ContinuousApproximator.CONDITION_KEYS:
+        for key in self.CONDITION_KEYS:
             if key in self.standardize and key in data:
                 data[key] = self.standardize_layers[key](data[key])
 
@@ -514,8 +514,12 @@ class ContinuousApproximator(Approximator):
         summary_variables: Tensor = None,
         **kwargs,
     ) -> Tensor:
-        if (self.summary_network is None) != (summary_variables is None):
-            raise ValueError("Summary variables and summary network must be used together.")
+        if self.summary_network is None:
+            if summary_variables is not None:
+                raise ValueError("Cannot use summary variables without a summary network.")
+        else:
+            if summary_variables is None:
+                raise ValueError("Summary variables are required when a summary network is present.")
 
         if self.summary_network is not None:
             summary_outputs = self.summary_network(
@@ -606,8 +610,12 @@ class ContinuousApproximator(Approximator):
         summary_variables: Tensor = None,
         **kwargs,
     ) -> Tensor:
-        if (self.summary_network is None) != (summary_variables is None):
-            raise ValueError("Summary variables and summary network must be used together.")
+        if self.summary_network is None:
+            if summary_variables is not None:
+                raise ValueError("Cannot use summary variables without a summary network.")
+        else:
+            if summary_variables is None:
+                raise ValueError("Summary variables are required when a summary network is present.")
 
         if self.summary_network is not None:
             summary_outputs = self.summary_network(
