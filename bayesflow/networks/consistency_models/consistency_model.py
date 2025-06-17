@@ -3,8 +3,6 @@ from keras import ops
 
 import numpy as np
 
-import warnings
-
 from bayesflow.types import Tensor
 from bayesflow.utils import find_network, layer_kwargs, weighted_mean
 from bayesflow.utils.serialization import deserialize, serializable, serialize
@@ -14,8 +12,8 @@ from ..inference_network import InferenceNetwork
 
 @serializable("bayesflow.networks")
 class ConsistencyModel(InferenceNetwork):
-    """Implements a Consistency Model with Consistency Training (CT) a described in [1-2]. The adaptations to CT
-    described in [2] were taken into account in our implementation for ABI [3].
+    """(IN) Implements a Consistency Model with Consistency Training (CT) as described in [1-2].
+    The adaptations to CT described in [2] were taken into account in our implementation for ABI [3].
 
     [1] Song, Y., Dhariwal, P., Chen, M. & Sutskever, I. (2023). Consistency Models. arXiv preprint arXiv:2303.01469
 
@@ -75,13 +73,6 @@ class ConsistencyModel(InferenceNetwork):
         super().__init__(base_distribution="normal", **kwargs)
 
         self.total_steps = float(total_steps)
-
-        if subnet_kwargs:
-            warnings.warn(
-                "Using `subnet_kwargs` is deprecated."
-                "Instead, instantiate the network yourself and pass the arguments directly.",
-                DeprecationWarning,
-            )
 
         subnet_kwargs = subnet_kwargs or {}
         if subnet == "mlp":

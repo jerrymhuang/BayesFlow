@@ -2,8 +2,6 @@ from collections.abc import Sequence
 
 import keras
 
-import warnings
-
 from bayesflow.distributions import Distribution
 from bayesflow.types import Shape, Tensor
 from bayesflow.utils import (
@@ -21,7 +19,7 @@ from ..inference_network import InferenceNetwork
 
 @serializable("bayesflow.networks")
 class FlowMatching(InferenceNetwork):
-    """Implements Optimal Transport Flow Matching, originally introduced as Rectified Flow, with ideas incorporated
+    """(IN) Implements Optimal Transport Flow Matching, originally introduced as Rectified Flow, with ideas incorporated
     from [1-3].
 
     [1] Rectified Flow: arXiv:2209.03003
@@ -53,7 +51,7 @@ class FlowMatching(InferenceNetwork):
 
     def __init__(
         self,
-        subnet: str | keras.Layer = "mlp",
+        subnet: str | type | keras.Layer = "mlp",
         base_distribution: str | Distribution = "normal",
         use_optimal_transport: bool = False,
         loss_fn: str | keras.Loss = "mse",
@@ -76,8 +74,8 @@ class FlowMatching(InferenceNetwork):
         Parameters
         ----------
         subnet : str or keras.Layer, optional
-            The architecture used for the transformation network. Can be "mlp" or a custom
-            callable network. Default is "mlp".
+            Architecture for the transformation network. Can be "mlp", a custom network class, or
+            a Layer object, e.g., `bayesflow.networks.MLP(widths=[32, 32])`. Default is "mlp".
         base_distribution : str, optional
             The base probability distribution from which samples are drawn, such as "normal".
             Default is "normal".
@@ -105,13 +103,6 @@ class FlowMatching(InferenceNetwork):
         self.loss_fn = keras.losses.get(loss_fn)
 
         self.seed_generator = keras.random.SeedGenerator()
-
-        if subnet_kwargs:
-            warnings.warn(
-                "Using `subnet_kwargs` is deprecated."
-                "Instead, instantiate the network yourself and pass the arguments directly.",
-                DeprecationWarning,
-            )
 
         subnet_kwargs = subnet_kwargs or {}
         if subnet == "mlp":

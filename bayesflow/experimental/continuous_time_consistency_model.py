@@ -3,8 +3,6 @@ from keras import ops
 
 import numpy as np
 
-import warnings
-
 from bayesflow.networks import MLP
 from bayesflow.types import Tensor
 from bayesflow.utils import (
@@ -25,7 +23,7 @@ from bayesflow.networks.embeddings import FourierEmbedding
 # disable module check, use potential module after moving from experimental
 @serializable("bayesflow.networks", disable_module_check=True)
 class ContinuousTimeConsistencyModel(InferenceNetwork):
-    """Implements an sCM (simple, stable, and scalable Consistency Model)
+    """(IN) Implements an sCM (simple, stable, and scalable Consistency Model)
     with continous-time Consistency Training (CT) as described in [1].
     The sampling procedure is taken from [2].
 
@@ -59,13 +57,6 @@ class ContinuousTimeConsistencyModel(InferenceNetwork):
             Additional keyword arguments to the layer.
         """
         super().__init__(base_distribution="normal", **kwargs)
-
-        if subnet_kwargs:
-            warnings.warn(
-                "Using `subnet_kwargs` is deprecated."
-                "Instead, instantiate the network yourself and pass the arguments directly.",
-                DeprecationWarning,
-            )
 
         subnet_kwargs = subnet_kwargs or {}
 

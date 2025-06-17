@@ -50,11 +50,11 @@ class Simulator:
                 # we could cast, but this tends to hide mistakes in the predicate
                 raise RuntimeError(f"Predicate must return a boolean type array. Got dtype={accept.dtype}")
 
-            (accept,) = np.nonzero(accept)
-
             if not np.any(accept):
                 # no samples accepted, skip
                 continue
+
+            (accept,) = np.nonzero(accept)
 
             # apply acceptance mask
             samples = {key: np.take(value, accept, axis=axis) for key, value in samples.items()}
@@ -66,3 +66,32 @@ class Simulator:
                 result = tree_concatenate([result, samples], axis=axis, numpy=True)
 
         return result
+
+    @allow_batch_size
+    def sample_batched(
+        self,
+        batch_shape: Shape,
+        *,
+        sample_size: int,
+        **kwargs,
+    ):
+        """Sample the desired number of simulations in smaller batches.
+
+        Limited resources, especially memory, can make it necessary to run simulations in smaller batches.
+        The number of samples per simulated batch is specified by `sample_size`.
+
+        Parameters
+        ----------
+        batch_shape : Shape
+            The desired output shape, as in :py:meth:`sample`. Will be rounded up to the next complete batch.
+        sample_size : int
+            The number of samples in each simulated batch.
+        kwargs
+            Additional keyword arguments passed to :py:meth:`sample`.
+
+        """
+
+        def accept_all_predicate(x):
+            return np.full((sample_size,), True)
+
+        return self.rejection_sample(batch_shape, predicate=accept_all_predicate, sample_size=sample_size, **kwargs)

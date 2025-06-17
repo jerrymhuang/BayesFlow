@@ -4,6 +4,8 @@ from bayesflow.types import Tensor
 from bayesflow.utils import layer_kwargs, fill_triangular_matrix
 from bayesflow.utils.serialization import serializable
 
+from warnings import warn
+
 
 @serializable("bayesflow.links")
 class PositiveDefinite(keras.Layer):
@@ -12,6 +14,12 @@ class PositiveDefinite(keras.Layer):
     def __init__(self, **kwargs):
         super().__init__(**layer_kwargs(kwargs))
         self.built = True
+
+        warn(
+            "This class is deprecated. It was replaced by bayesflow.links.CholeskyFactor.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     def call(self, inputs: Tensor) -> Tensor:
         # Build cholesky factor from inputs

@@ -37,7 +37,7 @@ class BasicWorkflow(Workflow):
         inference_variables: Sequence[str] | str = None,
         inference_conditions: Sequence[str] | str = None,
         summary_variables: Sequence[str] | str = None,
-        standardize: Sequence[str] | str = "inference_variables",
+        standardize: Sequence[str] | str | None = "inference_variables",
         **kwargs,
     ):
         """
@@ -76,11 +76,13 @@ class BasicWorkflow(Workflow):
             Variables for inference as a sequence of strings or a single string (default is None).
             Important for automating diagnostics!
         inference_conditions : Sequence[str] or str, optional
-            Variables used as conditions for inference (default is None).
+            Variables used as direct conditions for inference (default is None).
         summary_variables : Sequence[str] or str, optional
-            Variables for summarizing data, if any (default is None).
+            Variables to be summarized through the summary network before being used as conditions (default is None).
         standardize : Sequence[str] or str, optional
-            Variables to standardize during preprocessing (default is "inference_variables").
+            Variables to standardize during preprocessing (default is "inference_variables"). These will be
+            passed to the corresponding approximator constructor and can be either "all" or any subset of
+            ["inference_variables", "summary_variables", "inference_conditions"].
         **kwargs : dict, optional
             Additional arguments for configuring networks, adapters, optimizers, etc.
         """
@@ -94,9 +96,7 @@ class BasicWorkflow(Workflow):
 
         self.simulator = simulator
 
-        adapter = adapter or BasicWorkflow.default_adapter(
-            inference_variables, inference_conditions, summary_variables, standardize
-        )
+        adapter = adapter or BasicWorkflow.default_adapter(inference_variables, inference_conditions, summary_variables)
 
         if isinstance(self.inference_network, PointInferenceNetwork):
             constructor = PointApproximator
@@ -104,7 +104,10 @@ class BasicWorkflow(Workflow):
             constructor = ContinuousApproximator
 
         self.approximator = constructor(
-            inference_network=self.inference_network, summary_network=self.summary_network, adapter=adapter
+            inference_network=self.inference_network,
+            summary_network=self.summary_network,
+            adapter=adapter,
+            standardize=standardize,
         )
 
         self.initial_learning_rate = initial_learning_rate
@@ -166,7 +169,6 @@ class BasicWorkflow(Workflow):
         inference_variables: Sequence[str] | str,
         inference_conditions: Sequence[str] | str,
         summary_variables: Sequence[str] | str,
-        standardize: Sequence[str] | str,
     ) -> Adapter:
         """
         Create a default adapter for processing inference variables, conditions,
@@ -182,8 +184,6 @@ class BasicWorkflow(Workflow):
             The variables used as conditions for inference.
         summary_variables : Sequence[str] or str
             The variables used for summarization.
-        standardize : Sequence[str] or str
-            The variables to be standardized.
 
         Returns
         -------
@@ -202,9 +202,6 @@ class BasicWorkflow(Workflow):
             adapter = adapter.concatenate(inference_conditions, into="inference_conditions")
         if summary_variables is not None:
             adapter = adapter.concatenate(summary_variables, into="summary_variables")
-
-        if standardize is not None:
-            adapter = adapter.standardize(include=standardize)
 
         return adapter
 
@@ -674,6 +671,7 @@ class BasicWorkflow(Workflow):
         batch_size: int = 32,
         keep_optimizer: bool = False,
         validation_data: Mapping[str, np.ndarray] | int = None,
+        augmentations: Mapping[str, Callable] | Callable = None,
         **kwargs,
     ) -> keras.callbacks.History:
         """
@@ -698,6 +696,16 @@ class BasicWorkflow(Workflow):
             A dictionary containing validation data. If an integer is provided,
             that number of validation samples will be generated (if supported).
             By default, no validation data is used.
+        augmentations : dict of str to Callable or Callable, optional
+            Dictionary of augmentation functions to apply to each corresponding key in the batch
+            or a function to apply to the entire batch (possibly adding new keys).
+
+            If you provide a dictionary of functions, each function should accept one element
+            of your output batch and return the corresponding transformed element. Otherwise,
+            your function should accept the entire dictionary output and return a dictionary.
+
+            Note - augmentations are applied before the adapter is called and are generally
+            transforms that you only want to apply during training.
         **kwargs : dict, optional
             Additional keyword arguments passed to the underlying `_fit` method.
 
@@ -709,7 +717,7 @@ class BasicWorkflow(Workflow):
             metric evolution over epochs.
         """
 
-        dataset = OfflineDataset(data=data, batch_size=batch_size, adapter=self.adapter)
+        dataset = OfflineDataset(data=data, batch_size=batch_size, adapter=self.adapter, augmentations=augmentations)
 
         return self._fit(
             dataset, epochs, strategy="online", keep_optimizer=keep_optimizer, validation_data=validation_data, **kwargs
@@ -722,6 +730,7 @@ class BasicWorkflow(Workflow):
         batch_size: int = 32,
         keep_optimizer: bool = False,
         validation_data: Mapping[str, np.ndarray] | int = None,
+        augmentations: Mapping[str, Callable] | Callable = None,
         **kwargs,
     ) -> keras.callbacks.History:
         """
@@ -743,6 +752,16 @@ class BasicWorkflow(Workflow):
             A dictionary containing validation data. If an integer is provided,
             that number of validation samples will be generated (if supported).
             By default, no validation data is used.
+        augmentations : dict of str to Callable or Callable, optional
+            Dictionary of augmentation functions to apply to each corresponding key in the batch
+            or a function to apply to the entire batch (possibly adding new keys).
+
+            If you provide a dictionary of functions, each function should accept one element
+            of your output batch and return the corresponding transformed element. Otherwise,
+            your function should accept the entire dictionary output and return a dictionary.
+
+            Note - augmentations are applied before the adapter is called and are generally
+            transforms that you only want to apply during training.
         **kwargs : dict, optional
             Additional keyword arguments passed to the underlying `_fit` method.
 
@@ -755,7 +774,11 @@ class BasicWorkflow(Workflow):
         """
 
         dataset = OnlineDataset(
-            simulator=self.simulator, batch_size=batch_size, num_batches=num_batches_per_epoch, adapter=self.adapter
+            simulator=self.simulator,
+            batch_size=batch_size,
+            num_batches=num_batches_per_epoch,
+            adapter=self.adapter,
+            augmentations=augmentations,
         )
 
         return self._fit(
@@ -771,6 +794,7 @@ class BasicWorkflow(Workflow):
         epochs: int = 100,
         keep_optimizer: bool = False,
         validation_data: Mapping[str, np.ndarray] | int = None,
+        augmentations: Mapping[str, Callable] | Callable = None,
         **kwargs,
     ) -> keras.callbacks.History:
         """
@@ -798,6 +822,16 @@ class BasicWorkflow(Workflow):
             A dictionary containing validation data. If an integer is provided,
             that number of validation samples will be generated (if supported).
             By default, no validation data is used.
+        augmentations : dict of str to Callable or Callable, optional
+            Dictionary of augmentation functions to apply to each corresponding key in the batch
+            or a function to apply to the entire batch (possibly adding new keys).
+
+            If you provide a dictionary of functions, each function should accept one element
+            of your output batch and return the corresponding transformed element. Otherwise,
+            your function should accept the entire dictionary output and return a dictionary.
+
+            Note - augmentations are applied before the adapter is called and are generally
+            transforms that you only want to apply during training.
         **kwargs : dict, optional
             Additional keyword arguments passed to the underlying `_fit` method.
 
@@ -809,7 +843,14 @@ class BasicWorkflow(Workflow):
             metric evolution over epochs.
         """
 
-        dataset = DiskDataset(root=root, pattern=pattern, batch_size=batch_size, load_fn=load_fn, adapter=self.adapter)
+        dataset = DiskDataset(
+            root=root,
+            pattern=pattern,
+            batch_size=batch_size,
+            load_fn=load_fn,
+            adapter=self.adapter,
+            augmentations=augmentations,
+        )
 
         return self._fit(
             dataset, epochs, strategy="online", keep_optimizer=keep_optimizer, validation_data=validation_data, **kwargs

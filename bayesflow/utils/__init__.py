@@ -7,6 +7,7 @@ from . import (
     logging,
     numpy_utils,
     serialization,
+    tree,
 )
 
 from .callbacks import detailed_loss_callback
@@ -46,10 +47,7 @@ from .git import (
 )
 
 from .hparam_utils import find_batch_size, find_memory_budget
-
-from .integrate import (
-    integrate,
-)
+from .integrate import integrate, integrate_stochastic
 
 from .io import (
     pickle_load,
@@ -78,6 +76,7 @@ from .serialization import serialize_value_or_type, deserialize_value_or_type
 
 from .tensor_utils import (
     concatenate_valid,
+    concatenate_valid_shapes,
     expand,
     expand_as,
     expand_to,
@@ -88,14 +87,15 @@ from .tensor_utils import (
     expand_right_as,
     expand_right_to,
     expand_tile,
+    fill_triangular_matrix,
     pad,
+    positive_diag,
     searchsorted,
     size_of,
     stack_valid,
     tile_axis,
     tree_concatenate,
     tree_stack,
-    fill_triangular_matrix,
     weighted_mean,
 )
 
@@ -105,4 +105,4 @@ from .validators import check_lengths_same
 
 from ._docs import _add_imports_to_all
 
-_add_imports_to_all(include_modules=["keras_utils", "logging", "numpy_utils", "serialization"])
+_add_imports_to_all(include_modules=["keras_utils", "logging", "numpy_utils", "serialization", "tree"])

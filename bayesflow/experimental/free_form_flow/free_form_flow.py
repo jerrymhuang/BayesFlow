@@ -1,8 +1,6 @@
 import keras
 from keras import ops
 
-import warnings
-
 from bayesflow.distributions import Distribution
 from bayesflow.types import Tensor
 from bayesflow.utils import (
@@ -22,7 +20,7 @@ from bayesflow.networks import InferenceNetwork
 # disable module check, use potential module after moving from experimental
 @serializable("bayesflow.networks", disable_module_check=True)
 class FreeFormFlow(InferenceNetwork):
-    """Implements a dimensionality-preserving Free-form Flow.
+    """(IN) Implements a dimensionality-preserving Free-form Flow.
     Incorporates ideas from [1-2].
 
     [1] Draxler, F., Sorrenson, P., Zimmermann, L., Rousselot, A., & Köthe, U. (2024).F
@@ -39,7 +37,7 @@ class FreeFormFlow(InferenceNetwork):
         "activation": "mish",
         "kernel_initializer": "he_normal",
         "residual": True,
-        "dropout": 0.05,
+        "dropout": 0.0,
         "spectral_normalization": False,
     }
 
@@ -48,7 +46,7 @@ class FreeFormFlow(InferenceNetwork):
         "activation": "mish",
         "kernel_initializer": "he_normal",
         "residual": True,
-        "dropout": 0.05,
+        "dropout": 0.0,
         "spectral_normalization": False,
     }
 
@@ -85,13 +83,6 @@ class FreeFormFlow(InferenceNetwork):
             Additional keyword arguments
         """
         super().__init__(base_distribution, **kwargs)
-
-        if encoder_subnet_kwargs or decoder_subnet_kwargs:
-            warnings.warn(
-                "Using `subnet_kwargs` is deprecated."
-                "Instead, instantiate the network yourself and pass the arguments directly.",
-                DeprecationWarning,
-            )
 
         encoder_subnet_kwargs = encoder_subnet_kwargs or {}
         decoder_subnet_kwargs = decoder_subnet_kwargs or {}
@@ -227,10 +218,10 @@ class FreeFormFlow(InferenceNetwork):
             return self.decode(z, conditions, training=stage == "training")
 
         # VJP computation
-        z, vjp_fn = vjp(encode, x)
-        v1 = vjp_fn(v)[0]
+        z, vjp_fn = vjp(encode, x, return_output=True)
+        v1 = vjp_fn(v)
         # JVP computation
-        x_pred, v2 = jvp(decode, (z,), (v,))
+        x_pred, v2 = jvp(decode, (z,), (v,), return_output=True)
 
         # equivalent: surrogate = ops.matmul(ops.stop_gradient(v2[:, None]), v1[:, :, None])[:, 0, 0]
         surrogate = ops.sum((ops.stop_gradient(v2) * v1), axis=-1)

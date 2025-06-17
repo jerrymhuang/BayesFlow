@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+import warnings
 
 import numpy as np
 
@@ -69,6 +70,14 @@ class Standardize(ElementwiseTransform):
     ):
         super().__init__()
 
+        if mean is None or std is None:
+            warnings.warn(
+                "Dynamic standardization is deprecated and will be removed in later versions."
+                "Instead, use the standardize argument of the approximator / workflow instance or provide "
+                "fixed mean and std arguments. You may incur some redundant computations if you keep this transform.",
+                FutureWarning,
+            )
+
         self.mean = mean
         self.std = std
 
@@ -123,7 +132,7 @@ class Standardize(ElementwiseTransform):
 
     def log_det_jac(self, data, inverse: bool = False, **kwargs) -> np.ndarray:
         std = np.broadcast_to(self.std, data.shape)
-        ldj = np.log(np.abs(std))
+        ldj = -np.log(np.abs(std))
         if inverse:
             ldj = -ldj
         return np.sum(ldj, axis=tuple(range(1, ldj.ndim)))
