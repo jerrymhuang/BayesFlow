@@ -76,6 +76,7 @@ class Sampler:
         batch_size: int | None = None,
         sample_shape: Literal["infer"] | Sequence[int] | int = "infer",
         seed: int | keras.random.SeedGenerator | None = None,
+        masking_names: Sequence[str] = ("target_mask", "targets_fixed"),
         **kwargs,
     ):
         if conditions is None:
@@ -85,6 +86,7 @@ class Sampler:
                 conditions=None,
                 sample_shape=sample_shape,
                 seed=seed,
+                masking_names=masking_names,
                 **kwargs,
             )
 
@@ -97,7 +99,8 @@ class Sampler:
         for i in tqdm(range(0, num_conditions, batch_size), desc="Sampling", unit="batch"):
             batch_conditions = slice_maybe_nested(conditions, i, i + batch_size)
             batch_kwargs = {
-                k: slice_maybe_nested(v, i, i + batch_size) if hasattr(v, "shape") else v for k, v in kwargs.items()
+                k: slice_maybe_nested(v, i, i + batch_size) if hasattr(v, "shape") and k not in masking_names else v
+                for k, v in kwargs.items()
             }
 
             batch_samples = self._sample_batch(
@@ -106,6 +109,7 @@ class Sampler:
                 conditions=batch_conditions,
                 sample_shape=sample_shape,
                 seed=seed,
+                masking_names=masking_names,
                 **batch_kwargs,
             )
             batches.append(batch_samples)
@@ -119,16 +123,17 @@ class Sampler:
         num_samples: int,
         conditions: Tensor | None,
         sample_shape: Literal["infer"] | Sequence[int] | int,
+        masking_names: Sequence[str],
         seed: int | keras.random.SeedGenerator | None = None,
         **kwargs,
     ):
         conditions = self.repeat_and_flatten_conditions(conditions, num_samples)
 
-        # Keep tensor-valued kwargs (e.g. masks) aligned with the flattened conditions.
-        # Only repeat tensors that have a batch dimension (ndim >= 2); feature-level
         # tensors like target_mask (shape [feature_dim]) are passed through unchanged.
         kwargs = {
-            k: self.repeat_and_flatten_conditions(v, num_samples) if hasattr(v, "shape") and len(v.shape) >= 2 else v
+            k: self.repeat_and_flatten_conditions(v, num_samples)
+            if hasattr(v, "shape") and k not in masking_names
+            else v
             for k, v in kwargs.items()
         }
 
