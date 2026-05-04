@@ -1068,7 +1068,7 @@ class DiffusionModel(InferenceNetwork):
         compositional_score = self.compositional_bridge(time) * compositional_score
 
         x_pred = (xz + sigma_t**2 * compositional_score) / alpha_t
-        guidance = self.guidance_function(x=x_pred, time=time, **guidance_kwargs)
+        guidance = self.guidance_function(x_pred=x_pred, time=time, **(guidance_kwargs or {}))
         compositional_score = compositional_score + guidance
 
         compositional_score = self._maybe_clip_score(compositional_score, clip, alpha_t, sigma_t, xz)
