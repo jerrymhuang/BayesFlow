@@ -850,7 +850,12 @@ class DiffusionModel(InferenceNetwork):
             def deltas(time, xz):
                 return {
                     "xz": self.velocity(
-                        xz, time=time, stochastic_solver=True, conditions=conditions, training=training, **kwargs
+                        xz,
+                        time=time,
+                        stochastic_solver=True if not integrate_kwargs["method"] == "glass" else False,
+                        conditions=conditions,
+                        training=training,
+                        **kwargs,
                     )
                 }
 
