@@ -852,7 +852,7 @@ class DiffusionModel(InferenceNetwork):
                     "xz": self.velocity(
                         xz,
                         time=time,
-                        stochastic_solver=True if not integrate_kwargs["method"] == "glass" else False,
+                        stochastic_solver=integrate_kwargs["method"] != "glass",
                         conditions=conditions,
                         training=training,
                         **kwargs,
@@ -1525,13 +1525,14 @@ class DiffusionModel(InferenceNetwork):
         state = {"xz": z}
 
         if integrate_kwargs["method"] in STOCHASTIC_METHODS:
+            stochastic_solver = integrate_kwargs["method"] != "glass"
 
             def deltas(time, xz):
                 return {
                     "xz": self.compositional_velocity(
                         xz,
                         time=time,
-                        stochastic_solver=True,
+                        stochastic_solver=stochastic_solver,
                         conditions=conditions,
                         compute_prior_score=compute_prior_score,
                         mini_batch_size=mini_batch_size,
