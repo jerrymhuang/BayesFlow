@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import keras
 
 from bayesflow.types import Tensor
-from bayesflow.utils.serialization import serializable
+from bayesflow.utils.serialization import serializable, serialize
 
 from .equivariant_layer import EquivariantLayer
 from .invariant_layer import InvariantLayer
@@ -23,123 +23,101 @@ class DeepSet(SummaryNetwork):
     def __init__(
         self,
         summary_dim: int = 16,
+        embed_dim: int = 64,
         depth: int = 2,
+        mlp_widths: Sequence[int] = (64,),
         inner_pooling: str = "mean",
         output_pooling: str = "mean",
-        mlp_widths_equivariant: Sequence[int] = (64, 64),
-        mlp_widths_invariant_inner: Sequence[int] = (64, 64),
-        mlp_widths_invariant_outer: Sequence[int] = (64, 4),
-        mlp_widths_invariant_last: Sequence[int] = (64, 64),
         activation: str = "silu",
         kernel_initializer: str = "he_normal",
-        dropout: int | float | None = 0.05,
+        dropout: float | None = 0.05,
         **kwargs,
     ):
         """
-        Initializes a fully customizable deep learning model for learning permutation-invariant representations of
-        sets (i.e., exchangeable or IID data). Do not use this model for non-IID data (e.g., time series).
+        Initializes a deep set model for learning permutation-invariant representations.
 
-        Important: Prefer a SetTransformer to a DeepSet, especially is the simulation budget is high.
-
-        The model consists of multiple stacked equivariant transformation modules followed by an invariant pooling
-        module to produce a compact set representation.
-
-        The equivariant layers perform many-to-many transformations, preserving structural information, while
-        the final invariant module aggregates the set into a lower-dimensional summary.
-
-        The model supports various activation functions, kernel initializations. Pooling mechanisms can be specified
-        for both intermediate and final aggregation steps.
+        A stack of equivariant layers (each injecting a pooled invariant summary back into
+        every set element via a Pre-LN residual block) is followed by a single invariant
+        layer and a linear output projection.
 
         Parameters
         ----------
         summary_dim : int, optional
             Dimensionality of the final learned summary statistics. Default is 16.
+        embed_dim : int, optional
+            Working dimensionality shared across all equivariant and invariant layers.
+            Default is 64.
         depth : int, optional
             Number of stacked equivariant modules. Default is 2.
+        mlp_widths : Sequence[int], optional
+            Hidden layer widths for the MLPs inside each equivariant and invariant layer.
+            The output of each MLP is always ``embed_dim``. Default is ``(64,)``.
         inner_pooling : str, optional
-            Type of pooling operation applied within equivariant modules, such as "mean".
-            Default is "mean".
+            Pooling used inside the equivariant modules. Default is ``"mean"``.
         output_pooling : str, optional
-            Type of pooling operation applied in the final invariant module, such as "mean".
-            Default is "mean".
-        mlp_widths_equivariant : Sequence[int], optional
-            Widths of the MLP layers inside the equivariant modules. Default is (64, 64).
-        mlp_widths_invariant_inner : Sequence[int], optional
-            Widths of the inner MLP layers within the invariant module. Default is (64, 64).
-        mlp_widths_invariant_outer : Sequence[int], optional
-            Widths of the outer MLP layers within the invariant module. Default is (64, 4).
-        mlp_widths_invariant_last : Sequence[int], optional
-            Widths of the MLP layers in the final invariant transformation. Default is (64, 64).
+            Pooling used in the final invariant module. Default is ``"mean"``.
         activation : str, optional
-            Activation function used throughout the network, such as "gelu". Default is "silu".
+            Activation function used throughout. Default is ``"silu"``.
         kernel_initializer : str, optional
-            Initialization strategy for kernel weights, such as "he_normal". Default is "he_normal".
-        dropout : int, float, or None, optional
-            Dropout rate applied within MLP layers. Default is 0.05.
+            Weight initializer for Dense projections. Default is ``"he_normal"``.
+        dropout : float or None, optional
+            Dropout rate. Default is 0.05.
         **kwargs
             Additional keyword arguments passed to the base class.
         """
-
         super().__init__(**kwargs)
 
-        # Stack of equivariant modules for a many-to-many learnable transformation
-        self.equivariant_modules = []
-        for _ in range(depth):
-            equivariant_module = EquivariantLayer(
-                mlp_widths_equivariant=mlp_widths_equivariant,
-                mlp_widths_invariant_inner=mlp_widths_invariant_inner,
-                mlp_widths_invariant_outer=mlp_widths_invariant_outer,
+        self.summary_dim = summary_dim
+        self.embed_dim = embed_dim
+        self.depth = depth
+        self.mlp_widths = tuple(mlp_widths)
+        self.inner_pooling = inner_pooling
+        self.output_pooling = output_pooling
+        self.activation = activation
+        self.kernel_initializer = kernel_initializer
+        self.dropout_rate = dropout
+
+        self.equivariant_modules = [
+            EquivariantLayer(
+                embed_dim=embed_dim,
+                mlp_widths=mlp_widths,
+                pooling=inner_pooling,
                 activation=activation,
                 kernel_initializer=kernel_initializer,
                 dropout=dropout,
-                pooling=inner_pooling,
             )
-            self.equivariant_modules.append(equivariant_module)
+            for _ in range(depth)
+        ]
 
-        # Invariant module for a many-to-one transformation
         self.invariant_module = InvariantLayer(
-            mlp_widths_inner=mlp_widths_invariant_last,
-            mlp_widths_outer=mlp_widths_invariant_last,
+            embed_dim=embed_dim,
+            mlp_widths=mlp_widths,
+            pooling=output_pooling,
             activation=activation,
             kernel_initializer=kernel_initializer,
             dropout=dropout,
-            pooling=output_pooling,
         )
 
-        # Output linear layer to project set representation down to "summary_dim" learned summary statistics
-        self.output_projector = keras.layers.Dense(units=summary_dim, activation="linear", name="output_projector")
-
-        self.summary_dim = summary_dim
+        self.output_projector = keras.layers.Dense(units=summary_dim, kernel_initializer=kernel_initializer)
 
     def call(self, x: Tensor, training: bool = False, **kwargs) -> Tensor:
-        """
-        Performs the forward pass of a hierarchical deep invariant transformation.
-
-        This function applies a sequence of equivariant transformations to the input tensor,
-        preserving structural relationships while refining representations. After passing
-        through the equivariant modules, the data is processed by an invariant transformation,
-        which aggregates information into a lower-dimensional representation. The final output
-        is projected to the specified summary dimension using a linear layer.
-
-        Parameters
-        ----------
-        x : Tensor
-            Input tensor representing a set or collection of elements to be transformed.
-        training : bool, optional
-            Whether the model is in training mode, affecting layers like dropout. Default is False.
-        **kwargs
-            Additional keyword arguments passed to the transformation layers.
-
-        Returns
-        -------
-        output : Tensor
-            Transformed tensor with a reduced dimensionality, representing the learned summary
-            of the input set.
-        """
-
         for em in self.equivariant_modules:
             x = em(x, training=training)
-
         x = self.invariant_module(x, training=training)
-
         return self.output_projector(x)
+
+    def get_config(self):
+        base_config = super().get_config()
+        return base_config | serialize(
+            {
+                "summary_dim": self.summary_dim,
+                "embed_dim": self.embed_dim,
+                "depth": self.depth,
+                "mlp_widths": self.mlp_widths,
+                "inner_pooling": self.inner_pooling,
+                "output_pooling": self.output_pooling,
+                "activation": self.activation,
+                "kernel_initializer": self.kernel_initializer,
+                "dropout": self.dropout_rate,
+            }
+        )
