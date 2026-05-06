@@ -4,7 +4,7 @@ from bayesflow.metrics.functional import maximum_mean_discrepancy
 from bayesflow.types import Tensor
 from bayesflow.utils import layer_kwargs, find_distribution, filter_kwargs
 from bayesflow.utils.decorators import sanitize_input_shape
-from bayesflow.utils.serialization import deserialize
+from bayesflow.utils.serialization import deserialize, serialize
 
 
 class SummaryNetwork(keras.Layer):
@@ -82,6 +82,10 @@ class SummaryNetwork(keras.Layer):
                     metrics[metric.name] = metric(outputs, samples)
 
         return metrics
+
+    def get_config(self):
+        base_config = super().get_config()
+        return base_config | serialize({"base_distribution": self.base_distribution})
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
