@@ -3,7 +3,7 @@ from keras import layers
 
 from bayesflow.types import Tensor
 from bayesflow.utils import layer_kwargs
-from bayesflow.utils.serialization import serializable, serialize
+from bayesflow.utils.serialization import serializable, serialize, deserialize
 
 
 @serializable("bayesflow.networks")
@@ -110,6 +110,19 @@ class FFN(keras.Layer):
 
         return self.down_proj(x)
 
+    def build(self, input_shape):
+        if self.built:
+            return
+
+        input_shape = input_shape
+        self.gate_proj.build(input_shape)
+        self.up_proj.build(input_shape)
+        inter_shape = tuple(input_shape)[:-1] + (self.intermediate_dim,)
+        self.down_proj.build(inter_shape)
+
+    def compute_output_shape(self, input_shape):
+        return tuple(input_shape)[:-1] + (self.embed_dim,)
+
     def get_config(self) -> dict:
         base_config = super().get_config()
         return base_config | serialize(
@@ -122,3 +135,7 @@ class FFN(keras.Layer):
                 "kernel_initializer": self.kernel_initializer,
             }
         )
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config, custom_objects=custom_objects))

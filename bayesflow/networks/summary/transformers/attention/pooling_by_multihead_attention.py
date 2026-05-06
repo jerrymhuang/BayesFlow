@@ -2,8 +2,7 @@ import keras
 
 from bayesflow.types import Tensor
 from bayesflow.utils import layer_kwargs
-from bayesflow.utils.decorators import sanitize_input_shape
-from bayesflow.utils.serialization import serializable, serialize
+from bayesflow.utils.serialization import serializable, serialize, deserialize
 
 from .feedforward_net import FFN
 from .multihead_attention import MultiHeadAttention
@@ -129,11 +128,20 @@ class PoolingByMultiHeadAttention(keras.Layer):
         summaries = self.mab(seed_tiled, set_x_transformed, training=training)
         return keras.ops.reshape(summaries, (keras.ops.shape(summaries)[0], -1))
 
-    @sanitize_input_shape
-    def compute_output_shape(self, input_shape):
-        return keras.ops.shape(self.call(keras.ops.zeros(input_shape)))
+    def build(self, input_shape):
+        if self.built:
+            return
 
-    def get_config(self) -> dict:
+        input_shape = input_shape
+        self.feedforward.build(input_shape)
+        ffn_out_shape = self.feedforward.compute_output_shape(input_shape)
+        seed_shape = (input_shape[0], self.num_seeds, self.seed_dim if self.seed_dim is not None else self.embed_dim)
+        self.mab.build(seed_shape, ffn_out_shape)
+
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], self.num_seeds * self.embed_dim)
+
+    def get_config(self):
         base_config = super().get_config()
         return base_config | serialize(
             {
@@ -149,3 +157,7 @@ class PoolingByMultiHeadAttention(keras.Layer):
                 "layer_norm": self.layer_norm,
             }
         )
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config, custom_objects=custom_objects))

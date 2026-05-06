@@ -3,8 +3,7 @@ from keras import layers
 
 from bayesflow.types import Tensor
 from bayesflow.utils import layer_kwargs
-from bayesflow.utils.decorators import sanitize_input_shape
-from bayesflow.utils.serialization import serializable, serialize
+from bayesflow.utils.serialization import serializable, serialize, deserialize
 
 from .feedforward_net import FFN
 
@@ -142,14 +141,29 @@ class MultiHeadAttention(keras.Layer):
 
         return x
 
-    # noinspection PyMethodOverriding
-    @sanitize_input_shape
     def build(self, x_shape, y_shape):
-        self.call(keras.ops.zeros(x_shape), keras.ops.zeros(y_shape))
+        if self.built:
+            return
 
-    @sanitize_input_shape
+        self.input_projector.build(x_shape)
+        proj_shape = self.input_projector.compute_output_shape(x_shape)
+
+        if self.ln_attn is not None:
+            self.ln_attn.build(proj_shape)
+        if self.ln_kv is not None:
+            self.ln_kv.build(y_shape)
+
+        self.attention.build(proj_shape, y_shape, y_shape)
+
+        attn_out_shape = proj_shape
+
+        if self.ln_ffn is not None:
+            self.ln_ffn.build(attn_out_shape)
+
+        self.feedforward.build(attn_out_shape)
+
     def compute_output_shape(self, x_shape, y_shape):
-        return keras.ops.shape(self.call(keras.ops.zeros(x_shape), keras.ops.zeros(y_shape)))
+        return tuple(x_shape)[:-1] + (self.embed_dim,)
 
     def get_config(self) -> dict:
         base_config = super().get_config()
@@ -165,3 +179,7 @@ class MultiHeadAttention(keras.Layer):
                 "layer_norm": self.layer_norm,
             }
         )
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config, custom_objects=custom_objects))

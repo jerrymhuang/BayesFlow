@@ -2,8 +2,7 @@ import keras
 
 from bayesflow.types import Tensor
 from bayesflow.utils import layer_kwargs
-from bayesflow.utils.decorators import sanitize_input_shape
-from bayesflow.utils.serialization import serializable, serialize
+from bayesflow.utils.serialization import serializable, serialize, deserialize
 
 from .multihead_attention import MultiHeadAttention
 
@@ -97,14 +96,11 @@ class SetAttention(keras.Layer):
         """
         return self.mab(x, x, training=training, attention_mask=attention_mask)
 
-    # noinspection PyMethodOverriding
-    @sanitize_input_shape
     def build(self, input_shape):
-        self.call(keras.ops.zeros(input_shape))
+        self.mab.build(input_shape, input_shape)
 
-    @sanitize_input_shape
     def compute_output_shape(self, input_shape):
-        return keras.ops.shape(self.call(keras.ops.zeros(input_shape)))
+        return self.mab.compute_output_shape(input_shape, input_shape)
 
     def get_config(self) -> dict:
         base_config = super().get_config()
@@ -120,3 +116,7 @@ class SetAttention(keras.Layer):
                 "layer_norm": self.layer_norm,
             }
         )
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config, custom_objects=custom_objects))

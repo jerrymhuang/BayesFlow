@@ -2,7 +2,7 @@ import keras
 
 from bayesflow.types import Tensor
 from bayesflow.utils import layer_kwargs
-from bayesflow.utils.serialization import serializable, serialize
+from bayesflow.utils.serialization import serializable, serialize, deserialize
 
 from .multihead_attention import MultiHeadAttention
 
@@ -88,7 +88,7 @@ class InducedSetAttention(keras.Layer):
         self.mab0 = MultiHeadAttention(**mab_kwargs)
         self.mab1 = MultiHeadAttention(**mab_kwargs)
 
-    def call(self, x: Tensor, training: bool = False) -> Tensor:
+    def call(self, x: Tensor, training: bool = False, attention_mask: Tensor = None) -> Tensor:
         """Performs the forward pass through the ISAB block.
 
         Parameters
@@ -97,6 +97,9 @@ class InducedSetAttention(keras.Layer):
             Input of shape ``(batch_size, set_size, input_dim)``.
         training : bool, optional
             Passed to dropout and norm layers, by default False.
+        attention_mask : Tensor, optional
+            Boolean mask of shape ``(batch_size,...)`` where
+            1 = attend, 0 = mask.
 
         Returns
         -------
@@ -106,7 +109,20 @@ class InducedSetAttention(keras.Layer):
         batch_size = keras.ops.shape(x)[0]
         inducing_points_tiled = keras.ops.tile(keras.ops.expand_dims(self.inducing_points, axis=0), [batch_size, 1, 1])
         h = self.mab0(inducing_points_tiled, x, training=training)
-        return self.mab1(x, h, training=training)
+        return self.mab1(x, h, training=training, attention_mask=attention_mask)
+
+    def build(self, input_shape):
+        if self.built:
+            return
+
+        input_shape = input_shape
+        inducing_shape = (input_shape[0], self.num_inducing_points, self.embed_dim)
+        self.mab0.build(inducing_shape, input_shape)
+        h_shape = self.mab0.compute_output_shape(inducing_shape, input_shape)
+        self.mab1.build(input_shape, h_shape)
+
+    def compute_output_shape(self, input_shape):
+        return tuple(input_shape)[:-1] + (self.embed_dim,)
 
     def get_config(self) -> dict:
         base_config = super().get_config()
@@ -123,3 +139,7 @@ class InducedSetAttention(keras.Layer):
                 "layer_norm": self.layer_norm,
             }
         )
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return cls(**deserialize(config, custom_objects=custom_objects))
