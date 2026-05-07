@@ -166,8 +166,8 @@ def test_diffusion_compositional_guidance():
     assert samples_guided.shape == samples.shape
     assert (samples_guided[..., 0] < 0).all()
 
-    def guidance_function(x, time, **kwargs):
-        return x * 0
+    def guidance_function(x_pred, time, score, **guidance_kwargs):
+        return x_pred * 0
 
     workflow.approximator.inference_network.guidance_function = guidance_function
     samples_guided_func = workflow.compositional_sample(

@@ -193,7 +193,7 @@ def test_diffusion_guidance(simple_diffusion_model):
     assert samples_guided.shape == samples.shape
     assert (samples_guided[..., 0] < 0).all()
 
-    def guidance_function(x_pred, time, **guidance_kwargs):
+    def guidance_function(x_pred, time, score, **guidance_kwargs):
         return x_pred * 0
 
     workflow.approximator.inference_network.guidance_function = guidance_function
