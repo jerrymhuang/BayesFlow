@@ -74,58 +74,6 @@ class ModelComparisonApproximator(Approximator):
         self.condition_builder = ConditionBuilder()
         self.standardizer = Standardization(standardize)
 
-    @classmethod
-    def build_adapter(
-        cls,
-        num_models: int = None,
-        inference_variables: str | Sequence[str] = "model_indices",
-        inference_conditions: str | Sequence[str] = None,
-        summary_variables: str | Sequence[str] = None,
-        sample_weight: str = None,
-        summary_attention_mask: str = None,
-        summary_mask: str = None,
-        inference_attention_mask: str = None,
-        inference_mask: str = None,
-    ) -> Adapter:
-        """Create a default :py:class:`~bayesflow.adapters.Adapter` for model comparison.
-
-        Extends the base adapter with model-comparison-specific defaults:
-        ``inference_variables`` defaults to ``"model_indices"``, the key emitted
-        by :class:`~bayesflow.simulators.ModelComparisonSimulator`.
-
-        Parameters
-        ----------
-        num_models : int, optional
-            Number of models. Accepted for API consistency (the simulator already
-            outputs one-hot encoded ``model_indices``), but not used directly.
-        inference_variables : str or Sequence[str], optional
-            Key(s) holding the one-hot model indices. Defaults to ``"model_indices"``.
-        inference_conditions : str or Sequence[str], optional
-            Names of the inference conditions in the data dict.
-        summary_variables : str or Sequence[str], optional
-            Names of the summary variables in the data dict.
-        sample_weight : str, optional
-            Name of the sample weight variable.
-        summary_attention_mask : str, optional
-            Name of the attention mask for the summary network.
-        summary_mask : str, optional
-            Name of the padding/key mask for the summary network.
-        inference_attention_mask : str, optional
-            Name of the attention mask for the inference network.
-        inference_mask : str, optional
-            Name of the padding/key mask for the inference network.
-        """
-        return super().build_adapter(
-            inference_variables=inference_variables,
-            inference_conditions=inference_conditions,
-            summary_variables=summary_variables,
-            sample_weight=sample_weight,
-            summary_attention_mask=summary_attention_mask,
-            summary_mask=summary_mask,
-            inference_attention_mask=inference_attention_mask,
-            inference_mask=inference_mask,
-        )
-
     def build_dataset(
         self,
         *,
@@ -277,7 +225,9 @@ class ModelComparisonApproximator(Approximator):
 
         if adapter == "auto":
             logging.info("Building automatic data adapter.")
-            adapter = self.build_adapter(num_models=self.num_models, **filter_kwargs(kwargs, self.build_adapter))
+            adapter = self.build_adapter(
+                inference_variables="model_indices", **filter_kwargs(kwargs, self.build_adapter)
+            )
 
         if simulator is not None:
             return super().fit(simulator=simulator, adapter=adapter, **kwargs)
