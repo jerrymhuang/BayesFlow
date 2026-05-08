@@ -52,7 +52,8 @@ class InferenceNetwork(keras.Layer):
         :func:`~bayesflow.utils.find_distribution`.  Default is ``"normal"``.
     **kwargs
         Forwarded to ``keras.Layer`` after filtering with
-        :func:`~bayesflow.utils.layer_kwargs`.
+        :func:`~bayesflow.utils.layer_kwargs`. Can also contain a dict
+        entry `base_distribution_kwargs` to control latent dist parameters.
     """
 
     # Valid mask keys to pass to subnet
@@ -60,7 +61,7 @@ class InferenceNetwork(keras.Layer):
 
     def __init__(self, base_distribution: str = "normal", **kwargs):
         super().__init__(**layer_kwargs(kwargs))
-        self.base_distribution = find_distribution(base_distribution, **kwargs)
+        self.base_distribution = find_distribution(base_distribution, **kwargs.get("base_distribution_kwargs", {}))
 
     @staticmethod
     def _collect_mask_kwargs(keys: Sequence[str], source: dict) -> dict:
