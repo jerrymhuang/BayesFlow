@@ -1,8 +1,8 @@
 from collections.abc import Callable, Mapping, Sequence
-
-import numpy as np
+from typing import Any
 
 import keras
+import numpy as np
 
 from bayesflow.types import Shape
 
@@ -10,9 +10,9 @@ from bayesflow.types import Shape
 def batched_call(
     f: Callable,
     batch_shape: Shape,
-    args: Sequence[any] = (),
-    kwargs: Mapping[str, any] = None,
-    map_predicate: Callable[[any], bool] = None,
+    args: Sequence[Any] = (),
+    kwargs: Mapping[str, Any] = None,
+    map_predicate: Callable[[Any], bool] = None,
     flatten: bool = False,
 ) -> list:
     """Map f over the given batch shape with a for loop, preserving randomness unlike the keras built-in map apis.
