@@ -139,6 +139,36 @@ def typical_scoring_rule_network_subnet():
     )
 
 
+@pytest.fixture()
+def latent_diffusion_model():
+    from bayesflow.networks import DiffusionModel, MLP, TimeMLP
+    from bayesflow.experimental import LatentInferenceNetwork, VariationalAutoEncoder
+
+    autoencoder = VariationalAutoEncoder(
+        4,
+        MLP([8, 8]),
+        MLP([8, 8]),
+    )
+    inference_network = DiffusionModel(subnet=TimeMLP([8, 8]))
+
+    return LatentInferenceNetwork(autoencoder, inference_network)
+
+
+@pytest.fixture()
+def latent_coupling_flow():
+    from bayesflow.networks import CouplingFlow, MLP
+    from bayesflow.experimental import LatentInferenceNetwork, VariationalAutoEncoder
+
+    autoencoder = VariationalAutoEncoder(
+        4,
+        MLP([8, 8]),
+        MLP([8, 8]),
+    )
+    inference_network = CouplingFlow(subnet_kwargs=dict(widths=[8, 8]))
+
+    return LatentInferenceNetwork(autoencoder, inference_network)
+
+
 @pytest.fixture(
     params=[
         "typical_scoring_rule_network",
@@ -148,6 +178,8 @@ def typical_scoring_rule_network_subnet():
         "free_form_flow",
         "consistency_model",
         "stable_consistency_model",
+        "latent_diffusion_model",
+        "latent_coupling_flow",
         pytest.param("diffusion_model_edm_F"),
         pytest.param("diffusion_model_transformer"),
         pytest.param("diffusion_model_cosine_velocity", marks=pytest.mark.slow),

@@ -93,6 +93,7 @@ from .tensor_utils import (
     expand_right_to,
     expand_tile,
     fill_triangular_matrix,
+    non_batch_axis,
     pad,
     positive_diag,
     repeat_and_flatten,
