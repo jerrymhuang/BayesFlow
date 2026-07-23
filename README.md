@@ -23,7 +23,7 @@ It provides users with:
 </picture>
 </div>
 
-With BayesFlow, you can easily train neural networks for tasks like parameter estimation, model comparison, and validation. It works for both complex simulators that cannot be expressed as parametric models (i.e., simulation-based inference) as well as traditional statistical models. BayesFlow provides a streamlined workflow layer for inference, especially in situations where conventional methods are unavailable or inefficient.
+With BayesFlow, you can easily train neural networks for tasks like parameter estimation, model comparison, and validation. It works for both complex simulators that cannot be expressed as parametric models (i.e., simulation-based inference) as well as traditional statistical models.
 
 ## Install
 
