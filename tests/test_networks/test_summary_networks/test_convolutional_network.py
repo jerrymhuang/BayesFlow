@@ -4,6 +4,7 @@ import keras
 from bayesflow.networks import ConvolutionalNetwork
 
 from bayesflow.utils.serialization import deserialize, serialize
+from bayesflow.distributions import DiagonalNormal
 from tests.utils import assert_layers_equal
 
 BATCH = 2
@@ -116,6 +117,7 @@ def test_multi_block_stages():
     net = ConvolutionalNetwork(
         summary_dim=SUMMARY_DIM,
         widths=(4, 8),
+        kernel_sizes=(2, 2),
         blocks_per_stage=2,
         downsample_stage=(True, False),
     )
@@ -133,3 +135,11 @@ def test_dropout():
     net = _make(dropout=0.1)
     y = net(_input(), training=False)
     assert keras.ops.shape(y) == (BATCH, SUMMARY_DIM)
+
+
+def test_convolutional_network_forwards_kwargs():
+    """
+    See: https://github.com/bayesflow-org/bayesflow/issues/699
+    """
+    net = ConvolutionalNetwork(base_distribution="normal")
+    assert isinstance(net.base_distribution, DiagonalNormal)

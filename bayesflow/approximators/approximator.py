@@ -46,6 +46,22 @@ class Approximator(BackendApproximator):
         if hasattr(self, "standardizer"):
             return self.standardizer.standardize_layers
 
+    def _maybe_inject_guidance_unstandardize(self, kwargs: dict) -> dict:
+        """Inject an ``unstandardize`` callable into ``guidance_kwargs`` for sampling.
+
+        Only acts when ``guidance_kwargs`` is present.
+        """
+        guidance_kwargs = kwargs.get("guidance_kwargs")
+        if guidance_kwargs is None or not hasattr(self, "standardizer"):
+            return kwargs
+
+        def unstandardize(x):
+            return self.standardizer.maybe_standardize(x, key="inference_variables", stage="inference", forward=False)
+
+        kwargs = dict(kwargs)
+        kwargs["guidance_kwargs"] = {"unstandardize": unstandardize, **guidance_kwargs}
+        return kwargs
+
     def build(self, data_shapes: Mapping[str, tuple[int] | Mapping[str, Mapping]]):
         """
         Template method for building all network components.
@@ -314,13 +330,13 @@ class Approximator(BackendApproximator):
     def build_adapter(
         cls,
         inference_variables: str | Sequence[str],
-        inference_conditions: str | Sequence[str] = None,
-        summary_variables: str | Sequence[str] = None,
-        sample_weight: str = None,
-        summary_attention_mask: str = None,
-        summary_mask: str = None,
-        inference_attention_mask: str = None,
-        inference_mask: str = None,
+        inference_conditions: str | Sequence[str] | None = None,
+        summary_variables: str | Sequence[str] | None = None,
+        sample_weight: str | None = None,
+        summary_attention_mask: str | None = None,
+        summary_mask: str | None = None,
+        inference_attention_mask: str | None = None,
+        inference_mask: str | None = None,
     ) -> Adapter:
         """Create a default :py:class:`~bayesflow.adapters.Adapter` for the approximator.
 
@@ -433,8 +449,8 @@ class Approximator(BackendApproximator):
     def compile(
         self,
         *args,
-        inference_metrics: Any = None,
-        summary_metrics: Any = None,
+        inference_metrics: Any | None = None,
+        summary_metrics: Any | None = None,
         **kwargs,
     ):
         """
@@ -460,7 +476,7 @@ class Approximator(BackendApproximator):
 
         return super().compile(*args, **kwargs)
 
-    def fit(self, *, dataset: keras.utils.PyDataset = None, simulator: Simulator = None, **kwargs):
+    def fit(self, *, dataset: keras.utils.PyDataset | None = None, simulator: Simulator | None = None, **kwargs):
         """
         Trains the approximator on the provided dataset or on-demand data generated from the given simulator.
         If `dataset` is not provided, a dataset is built from the `simulator`.

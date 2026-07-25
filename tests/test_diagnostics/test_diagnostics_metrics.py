@@ -123,6 +123,19 @@ def test_classifier_two_sample_test(random_samples_a, random_samples_b):
     assert len(metrics["scores"]) == 5
 
 
+def test_model_comparison_accuracy():
+    probs = np.array([[0.8, 0.1, 0.1], [0.1, 0.9, 0.0], [0.2, 0.3, 0.5]])
+    one_hot = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+    # PMP mode: predictions shape (N, M)
+    assert bf.diagnostics.metrics.accuracy(probs, one_hot, per_model=False) == 1.0
+
+    # partial accuracy
+    probs_wrong = np.array([[0.1, 0.8, 0.1], [0.1, 0.9, 0.0], [0.2, 0.3, 0.5]])
+    acc = bf.diagnostics.metrics.accuracy(probs_wrong, one_hot, per_model=False)
+    assert abs(acc - 2 / 3) < 1e-6
+
+
 def test_expected_calibration_error(pred_models, true_models, model_names):
     out = bf.diagnostics.metrics.expected_calibration_error(pred_models, true_models, model_names=model_names)
     assert list(out.keys()) == ["values", "metric_name", "model_names"]
@@ -136,7 +149,7 @@ def test_expected_calibration_error(pred_models, true_models, model_names):
     assert len(out["probs_true"]) == pred_models.shape[-1]
     assert len(out["probs_pred"]) == pred_models.shape[-1]
     # default: auto model names
-    assert out["model_names"] == ["M_0", "M_1", "M_2"]
+    assert out["model_names"] == ["M_1", "M_2", "M_3"]
 
     # handles incorrect input?
     with pytest.raises(Exception):
@@ -144,6 +157,27 @@ def test_expected_calibration_error(pred_models, true_models, model_names):
 
     with pytest.raises(Exception):
         out = bf.diagnostics.metrics.expected_calibration_error(pred_models, true_models.transpose)
+
+
+def test_model_comparison_brier_score(pred_models, true_models, model_names):
+    out = bf.diagnostics.metrics.brier_score(pred_models, true_models, model_names=model_names)
+    assert list(out.keys()) == ["values", "aggregate", "metric_name", "model_names"]
+    assert out["values"].shape == (pred_models.shape[-1],)
+    assert out["metric_name"] == "Brier Score"
+    assert out["model_names"] == [r"$\mathcal{M}_0$", r"$\mathcal{M}_1$", r"$\mathcal{M}_2$"]
+    assert abs(out["aggregate"] - out["values"].sum()) < 1e-6
+
+    # default: auto model names
+    out = bf.diagnostics.metrics.brier_score(pred_models, true_models)
+    assert out["model_names"] == ["M_1", "M_2", "M_3"]
+
+    # perfect predictions score 0, maximally wrong confident predictions score 2
+    one_hot = np.eye(3)[np.array([0, 1, 2])]
+    out = bf.diagnostics.metrics.brier_score(one_hot, one_hot)
+    assert np.allclose(out["values"], 0.0)
+    wrong = np.eye(3)[np.array([1, 2, 0])]
+    out = bf.diagnostics.metrics.brier_score(wrong, one_hot)
+    assert abs(out["aggregate"] - 2.0) < 1e-6
 
 
 def test_calibration_log_gamma(random_estimates, random_targets):
@@ -207,6 +241,18 @@ def test_calibration_log_gamma_end_to_end():
     # sbc should almost always fail for slightly biased posterior draws
     sbc_calibration = [run_sbc(N=N, S=S, D=D, bias=2) for _ in range(100)]
     assert not lower_expected <= np.sum(sbc_calibration) <= upper_expected
+
+
+def test_accuracy_random_points():
+    # overdispersed posterior should have a higher atc than underdispersed
+    rng = np.random.default_rng(0)
+    N, S, D = 500, 300, 3
+    thetas = rng.normal(size=(N, D))
+    wide = thetas[:, None, :] + rng.normal(scale=5.0, size=(N, S, D))
+    narrow = thetas[:, None, :] + rng.normal(scale=0.01, size=(N, S, D))
+    atc_wide = bf.diagnostics.metrics.accuracy_random_points(wide, thetas)["values"]
+    atc_narrow = bf.diagnostics.metrics.accuracy_random_points(narrow, thetas)["values"]
+    assert atc_wide > atc_narrow
 
 
 def test_bootstrap_comparison_shapes():
