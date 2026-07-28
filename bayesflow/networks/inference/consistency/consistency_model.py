@@ -115,7 +115,6 @@ class ConsistencyModel(InferenceNetwork):
         self._subnet_mask_keys = set(filter_kwargs({k: None for k in self._SUBNET_MASK_KEYS}, self.subnet.call).keys())
 
         self.output_projector = None
-
         self.sigma2 = ops.convert_to_tensor(sigma2)
         self.sigma = ops.sqrt(sigma2)
         self.eps = eps
@@ -203,16 +202,18 @@ class ConsistencyModel(InferenceNetwork):
 
         self.base_distribution.build(xz_shape)
 
-        self.output_projector = keras.layers.Dense(
-            units=xz_shape[-1],
-            bias_initializer="zeros",
-            name="output_projector",
-        )
-
         # construct input shape for subnet and subnet projector
         time_shape = (xz_shape[0], 1)  # same batch dims, 1 feature
         self.subnet.build((xz_shape, time_shape, conditions_shape))
         out_shape = self.subnet.compute_output_shape((xz_shape, time_shape, conditions_shape))
+        if out_shape[-1] != xz_shape[-1]:
+            self.output_projector = keras.layers.Dense(
+                units=xz_shape[-1],
+                bias_initializer="zeros",
+                name="output_projector",
+            )
+        else:
+            self.output_projector = keras.layers.Identity()
         self.output_projector.build(out_shape)
 
         # Choose coefficient according to [2] Section 3.3

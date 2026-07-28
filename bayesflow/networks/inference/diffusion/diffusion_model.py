@@ -55,8 +55,8 @@ class DiffusionModel(InferenceNetwork):
     subnet : str, type, or keras.Layer
         A neural network type for the diffusion model, will be instantiated using
         *subnet_kwargs*.  If a string is provided, it should be a registered name
-        (e.g., ``"time_mlp"``).  If a type or ``keras.Layer`` is provided, it will
-        be directly instantiated with the given *subnet_kwargs*.  Any subnet must
+        (e.g., ``"time_mlp"``, ``"diffusion_transformer"``).  If a type or ``keras.Layer`` is provided,
+        it will be directly instantiated with the given *subnet_kwargs*.  Any subnet must
         accept a tuple of tensors ``(target, time, conditions)``.
     noise_schedule : {'edm', 'cosine'} or NoiseSchedule or type
         Noise schedule controlling the diffusion dynamics.  Can be a string
@@ -268,14 +268,20 @@ class DiffusionModel(InferenceNetwork):
 
         self.base_distribution.build(xz_shape)
 
-        units = 1 if self._prediction_type == "potential" else xz_shape[-1]
-        self.output_projector = keras.layers.Dense(units=units, bias_initializer="zeros")
-
         # construct input shape for subnet and subnet projector
         time_shape = (xz_shape[0], 1)
         self.subnet.build((xz_shape, time_shape, conditions_shape))
         out_shape = self.subnet.compute_output_shape((xz_shape, time_shape, conditions_shape))
 
+        units = 1 if self._prediction_type == "potential" else xz_shape[-1]
+        if out_shape[-1] != units:
+            self.output_projector = keras.layers.Dense(
+                units=units,
+                bias_initializer="zeros",
+                name="output_projector",
+            )
+        else:
+            self.output_projector = keras.layers.Identity()
         self.output_projector.build(out_shape)
 
     def get_config(self):
