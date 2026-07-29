@@ -162,3 +162,9 @@ class TimeSeriesTransformer(Transformer):
             summary = self.pooling(inp, mask=mask)
         summary = self.output_projector(summary)
         return summary
+
+    def compute_mask(self, inputs, mask=None):
+        # `mask` (magic keyword in Keras) is terminated here by `return None`
+        # to prevent warnings about inability to inject it downstream.
+        # We explicitly pass mask and do not rely on having it travel with as a tensor attribute.
+        return None

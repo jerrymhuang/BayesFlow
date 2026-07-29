@@ -3,6 +3,7 @@ import numpy as np
 import keras
 
 from bayesflow.networks.helpers import Standardization
+from bayesflow.networks.helpers.standardization.standardize import Standardize
 from bayesflow.utils.serialization import serialize, deserialize
 
 from tests.utils import assert_layers_equal
@@ -27,6 +28,25 @@ def test_forward_standardization_training():
     assert out.shape == random_input.shape
     assert not np.any(np.isnan(out))
     np.testing.assert_allclose(np.std(out, axis=0), 1.0, atol=1e-5)
+
+
+def test_forward_standardization_mask_invariance():
+    real_len, pad_len = 5, 4
+    real_input = keras.random.normal((8, real_len, 3), mean=10)
+    padded_input = keras.ops.concatenate([real_input, keras.ops.zeros((8, pad_len, 3))], axis=-2)
+    mask = keras.ops.concatenate([keras.ops.ones((8, real_len)), keras.ops.zeros((8, pad_len))], axis=-1)
+
+    masked = Standardize()
+    masked(padded_input, stage="training", mask=mask)
+
+    reference = Standardize()
+    reference(real_input, stage="training")
+
+    for attr in ["moving_mean", "moving_m2", "count"]:
+        np.testing.assert_allclose(
+            keras.ops.convert_to_numpy(getattr(masked, attr)[0]),
+            keras.ops.convert_to_numpy(getattr(reference, attr)[0]),
+        )
 
 
 def test_forward_standardization_training_constant_batch():
